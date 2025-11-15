@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/Logo";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { Users, BarChart3, Shield, AlertTriangle, FileText, TrendingUp } from "lucide-react";
 
 const Index = () => {
@@ -181,10 +181,10 @@ const Index = () => {
             <Logo size="sm" />
             
             <div className="flex gap-8 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-signal-cyan transition-colors">About</a>
-              <a href="#" className="hover:text-signal-cyan transition-colors">Privacy</a>
-              <a href="#" className="hover:text-signal-cyan transition-colors">Terms</a>
-              <a href="#" className="hover:text-signal-cyan transition-colors">Contact</a>
+              <Link to="/about" className="hover:text-signal-cyan transition-colors">About</Link>
+              <Link to="/privacy" className="hover:text-signal-cyan transition-colors">Privacy</Link>
+              <Link to="/terms" className="hover:text-signal-cyan transition-colors">Terms</Link>
+              <Link to="/contact" className="hover:text-signal-cyan transition-colors">Contact</Link>
             </div>
           </div>
           
