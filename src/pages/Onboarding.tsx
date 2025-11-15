@@ -5,6 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
+import { useUserState } from "@/contexts/UserStateContext";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -15,19 +17,20 @@ import {
 
 const Onboarding = () => {
   const navigate = useNavigate();
+  const { updateConfiguration } = useUserState();
   const [step, setStep] = useState(1);
   const [config, setConfig] = useState({
-    leaders: [] as string[],
+    leaders: "",
     party: "",
-    topics: [] as string[],
-    opposition: [] as string[],
+    topics: "",
+    opposition: "",
     dataSources: [] as string[],
     region: "",
     metrics: [] as string[],
-    summaryType: "short",
+    reportType: "detailed",
     frequency: "weekly",
     timeOfDay: "",
-    recipients: [] as string[],
+    recipients: "",
     language: "english",
     deliveryMethod: "pdf",
   });
@@ -41,7 +44,9 @@ const Onboarding = () => {
   };
 
   const handleComplete = () => {
-    navigate('/dashboard');
+    updateConfiguration(config);
+    toast.success("Configuration saved. Data collection started.");
+    navigate('/dashboard?state=pending');
   };
 
   const toggleArrayItem = (array: string[], item: string) => {
@@ -78,7 +83,8 @@ const Onboarding = () => {
               <Input
                 placeholder="Enter names (comma-separated)"
                 className="bg-charcoal border-signal-cyan/20"
-                onChange={(e) => setConfig({ ...config, leaders: e.target.value.split(',').map(s => s.trim()) })}
+                value={config.leaders}
+                onChange={(e) => setConfig({ ...config, leaders: e.target.value })}
               />
             </div>
 
@@ -87,6 +93,7 @@ const Onboarding = () => {
               <Input
                 placeholder="Party name"
                 className="bg-charcoal border-signal-cyan/20"
+                value={config.party}
                 onChange={(e) => setConfig({ ...config, party: e.target.value })}
               />
             </div>
@@ -96,7 +103,8 @@ const Onboarding = () => {
               <Input
                 placeholder="Enter topics (comma-separated)"
                 className="bg-charcoal border-signal-cyan/20"
-                onChange={(e) => setConfig({ ...config, topics: e.target.value.split(',').map(s => s.trim()) })}
+                value={config.topics}
+                onChange={(e) => setConfig({ ...config, topics: e.target.value })}
               />
             </div>
 
@@ -105,7 +113,8 @@ const Onboarding = () => {
               <Input
                 placeholder="Enter names (comma-separated)"
                 className="bg-charcoal border-signal-cyan/20"
-                onChange={(e) => setConfig({ ...config, opposition: e.target.value.split(',').map(s => s.trim()) })}
+                value={config.opposition}
+                onChange={(e) => setConfig({ ...config, opposition: e.target.value })}
               />
             </div>
           </div>
@@ -184,7 +193,7 @@ const Onboarding = () => {
 
             <div className="space-y-4">
               <Label className="text-lg uppercase tracking-wide">Report Type</Label>
-              <Select value={config.summaryType} onValueChange={(value) => setConfig({ ...config, summaryType: value })}>
+              <Select value={config.reportType} onValueChange={(value) => setConfig({ ...config, reportType: value })}>
                 <SelectTrigger className="bg-charcoal border-signal-cyan/20">
                   <SelectValue />
                 </SelectTrigger>
@@ -230,7 +239,8 @@ const Onboarding = () => {
               <Input
                 placeholder="Enter emails (comma-separated)"
                 className="bg-charcoal border-signal-cyan/20"
-                onChange={(e) => setConfig({ ...config, recipients: e.target.value.split(',').map(s => s.trim()) })}
+                value={config.recipients}
+                onChange={(e) => setConfig({ ...config, recipients: e.target.value })}
               />
             </div>
 

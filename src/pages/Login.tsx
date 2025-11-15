@@ -4,9 +4,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
+import { useUserState } from "@/contexts/UserStateContext";
+import { determineUserRoute } from "@/hooks/useUserStateRouting";
 
 const Login = () => {
   const navigate = useNavigate();
+  const { login, userState } = useUserState();
   const [formData, setFormData] = useState({
     email: "",
     password: "",
@@ -14,7 +17,9 @@ const Login = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/dashboard');
+    login(formData.email);
+    const correctRoute = determineUserRoute(userState);
+    navigate(correctRoute);
   };
 
   return (

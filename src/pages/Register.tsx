@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
+import { useUserState } from "@/contexts/UserStateContext";
 import {
   Select,
   SelectContent,
@@ -15,6 +16,7 @@ import {
 
 const Register = () => {
   const navigate = useNavigate();
+  const { login } = useUserState();
   const [formData, setFormData] = useState({
     email: "",
     fullName: "",
@@ -28,7 +30,7 @@ const Register = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Navigate to onboarding after registration
+    login(formData.email);
     navigate('/onboarding');
   };
 
