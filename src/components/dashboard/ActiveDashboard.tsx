@@ -7,7 +7,7 @@ import { Database, Activity, TrendingUp, Clock, Calendar, CheckCircle2, FileText
 
 const ActiveDashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useUserState();
+  const { userState, logout } = useUserState();
 
   const handleSignOut = () => {
     logout();
