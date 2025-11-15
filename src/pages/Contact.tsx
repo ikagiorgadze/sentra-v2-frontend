@@ -101,10 +101,8 @@ const Contact = () => {
             <div className="space-y-3 pt-8 border-t border-border">
               <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Business Address</h3>
               <address className="text-base text-foreground not-italic font-mono leading-relaxed">
-                Sentra Intelligence Ltd.<br />
-                Kneza Miloša 12<br />
-                11000 Belgrade<br />
-                Serbia
+                131 Continental DR, Suite 305<br />
+                Newark, DE 19713
               </address>
             </div>
 

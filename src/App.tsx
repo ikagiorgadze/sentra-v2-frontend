@@ -7,6 +7,7 @@ import { useEffect } from "react";
 import { UserStateProvider } from "@/contexts/UserStateContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import { AuthRoute } from "@/components/AuthRoute";
+import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
 import Login from "./pages/Login";
@@ -36,6 +37,7 @@ const App = () => {
           <Toaster />
           <Sonner />
           <BrowserRouter>
+            <ScrollToTop />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/sample-report" element={<SampleReport />} />
