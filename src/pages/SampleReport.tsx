@@ -56,10 +56,14 @@ const SampleReport = () => {
     return value.toString();
   };
 
+  const handleDownloadPDF = () => {
+    window.print();
+  };
+
   return (
     <div className="min-h-screen bg-off-white text-charcoal">
       {/* Header */}
-      <header className="bg-charcoal text-off-white border-b border-signal-cyan/20 print:hidden">
+      <header className="bg-charcoal text-off-white border-b border-signal-cyan/20 print:hidden relative">
         <div className="container mx-auto px-8 py-4 flex justify-between items-center">
           <Button
             variant="ghost"
@@ -70,8 +74,13 @@ const SampleReport = () => {
             Back
           </Button>
           
+          <div className="absolute right-8 top-4 bg-red-600 text-white px-4 py-2 rounded text-xs uppercase tracking-wide font-semibold">
+            Confidential - Internal Use Only
+          </div>
+          
           <Button
             variant="outline"
+            onClick={handleDownloadPDF}
             className="border-signal-cyan text-signal-cyan hover:bg-signal-cyan hover:text-charcoal"
           >
             <Download className="w-4 h-4 mr-2" />

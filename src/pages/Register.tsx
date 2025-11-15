@@ -22,6 +22,7 @@ const Register = () => {
     fullName: "",
     organization: "",
     role: "",
+    customRole: "",
     country: "",
     password: "",
     confirmPassword: "",
@@ -30,6 +31,11 @@ const Register = () => {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (formData.role === 'other' && !formData.customRole.trim()) {
+      return;
+    }
+    
     login(formData.email);
     navigate('/onboarding');
   };
@@ -91,7 +97,12 @@ const Register = () => {
 
           <div className="space-y-2">
             <Label htmlFor="role" className="text-sm uppercase tracking-wide">Role</Label>
-            <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+            <Select 
+              value={formData.role} 
+              onValueChange={(value) => {
+                setFormData({ ...formData, role: value, customRole: value !== 'other' ? '' : formData.customRole });
+              }}
+            >
               <SelectTrigger className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan">
                 <SelectValue placeholder="Select role" />
               </SelectTrigger>
@@ -101,8 +112,21 @@ const Register = () => {
                 <SelectItem value="communications">Communications Director</SelectItem>
                 <SelectItem value="strategist">Political Strategist</SelectItem>
                 <SelectItem value="analyst">Policy Analyst</SelectItem>
+                <SelectItem value="other">Other</SelectItem>
               </SelectContent>
             </Select>
+            
+            {formData.role === 'other' && (
+              <Input
+                id="customRole"
+                type="text"
+                required
+                placeholder="Enter your role"
+                className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan mt-2"
+                value={formData.customRole}
+                onChange={(e) => setFormData({ ...formData, customRole: e.target.value })}
+              />
+            )}
           </div>
 
           <div className="space-y-2">

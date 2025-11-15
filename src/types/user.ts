@@ -1,3 +1,11 @@
+export interface OpponentProfile {
+  id: string;
+  name: string;
+  role: string;
+  party: string;
+  region: string;
+}
+
 export interface ChannelConfig {
   enabled: boolean;
   includeTerms: string;
@@ -12,7 +20,7 @@ export interface OnboardingConfig {
     party: string;
     region: string;
   };
-  opponents: string[];
+  opponents: OpponentProfile[];
   topics: string[];
   channels: {
     x: ChannelConfig;

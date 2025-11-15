@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { UserState, DEFAULT_USER_STATE, OnboardingConfig } from '@/types/user';
+import { UserState, DEFAULT_USER_STATE, OnboardingConfig, OpponentProfile } from '@/types/user';
 
 const STORAGE_KEY = 'sentra_user_state';
 
@@ -16,12 +16,30 @@ const UserStateContext = createContext<UserStateContextType | undefined>(undefin
 const migrateOldConfig = (oldConfig: any): OnboardingConfig | null => {
   if (!oldConfig) return null;
   
-  // If already new format, return as-is
-  if (oldConfig.leader && oldConfig.channels) {
+  // If already new format with OpponentProfile[], return as-is
+  if (oldConfig.leader && oldConfig.channels && oldConfig.opponents && oldConfig.opponents[0]?.id) {
     return oldConfig;
   }
 
-  // Migrate old format to new
+  // If already has leader and channels but old string[] opponents
+  if (oldConfig.leader && oldConfig.channels) {
+    const migratedOpponents: OpponentProfile[] = (oldConfig.opponents || [])
+      .filter((name: string | { name: string }) => typeof name === 'string' ? name.trim() : name.name?.trim())
+      .map((name: string | { name: string }) => ({
+        id: crypto.randomUUID(),
+        name: typeof name === 'string' ? name.trim() : name.name || "",
+        role: "",
+        party: "",
+        region: ""
+      }));
+    
+    return {
+      ...oldConfig,
+      opponents: migratedOpponents
+    };
+  }
+
+  // Migrate very old format to new
   return {
     leader: {
       name: oldConfig.leaders || "",
@@ -29,7 +47,13 @@ const migrateOldConfig = (oldConfig: any): OnboardingConfig | null => {
       party: oldConfig.party || "",
       region: oldConfig.region || "",
     },
-    opponents: oldConfig.opposition ? oldConfig.opposition.split(',').map((s: string) => s.trim()) : [],
+    opponents: oldConfig.opposition ? oldConfig.opposition.split(',').map((s: string) => ({
+      id: crypto.randomUUID(),
+      name: s.trim(),
+      role: "",
+      party: "",
+      region: ""
+    })) : [],
     topics: oldConfig.topics ? oldConfig.topics.split(',').map((s: string) => s.trim()) : [],
     channels: {
       x: {
