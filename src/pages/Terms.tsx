@@ -1,0 +1,175 @@
+import { Logo } from "@/components/Logo";
+import { useNavigate } from "react-router-dom";
+import { ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+
+const Terms = () => {
+  const navigate = useNavigate();
+
+  return (
+    <div className="min-h-screen bg-off-white dark:bg-off-white text-charcoal">
+      {/* Header */}
+      <header className="border-b border-charcoal/10">
+        <div className="container mx-auto px-8 py-6 flex items-center justify-between">
+          <Button
+            variant="ghost"
+            onClick={() => navigate("/")}
+            className="text-charcoal hover:text-signal-cyan"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back
+          </Button>
+          <Logo size="sm" />
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="container mx-auto px-8 py-16 max-w-4xl">
+        <h1 className="text-4xl font-bold uppercase tracking-tight mb-2">Terms of Service</h1>
+        <p className="text-sm text-muted-foreground font-mono mb-16">Last updated: January 2025</p>
+
+        <div className="space-y-12 text-charcoal">
+          {/* Use of Service */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Use of the Service</h2>
+            <p className="text-base leading-relaxed">
+              By accessing Sentra, you agree to use the platform solely for analytical and intelligence purposes.
+              You may not use Sentra to conduct illegal activity, manipulate public discourse, or violate
+              third-party rights.
+            </p>
+            <p className="text-base leading-relaxed">
+              Sentra is provided as-is. The platform delivers analytical estimates, not factual guarantees.
+              All metrics—sentiment scores, engagement rates, bot detection—are computational outputs
+              subject to model limitations.
+            </p>
+          </section>
+
+          {/* Service Scope */}
+          <section className="space-y-4 pl-6 border-l-2 border-signal-cyan/20">
+            <h3 className="text-xl font-semibold uppercase tracking-wide">Service Scope</h3>
+            <p className="text-base leading-relaxed">
+              Sentra monitors publicly available content from:
+            </p>
+            <ul className="space-y-2 text-base leading-relaxed list-disc list-inside">
+              <li>X (Twitter) — public posts and engagement data</li>
+              <li>Facebook — public pages and posts</li>
+              <li>News websites — published articles</li>
+            </ul>
+            <p className="text-base leading-relaxed">
+              Sentra does not access private messages, closed groups, or content behind authentication walls.
+              Data collection complies with the terms of service of monitored platforms.
+            </p>
+          </section>
+
+          {/* Accounts & Security */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Accounts & Security</h2>
+            <p className="text-base leading-relaxed">
+              You are responsible for maintaining the confidentiality of your account credentials.
+              Sentra is not liable for unauthorized access resulting from compromised passwords.
+            </p>
+            <p className="text-base leading-relaxed">
+              Each account is assigned to a single organization. Sharing access across unrelated entities
+              is prohibited. Multi-user access must be arranged through Enterprise subscriptions.
+            </p>
+          </section>
+
+          {/* Subscription & Billing */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Subscription & Billing</h2>
+            <p className="text-base leading-relaxed">
+              Sentra operates on a subscription model. Billing is processed monthly or annually depending
+              on the selected plan. Payment is due at the beginning of each billing cycle.
+            </p>
+            <p className="text-base leading-relaxed">
+              Failure to maintain active payment will result in service suspension. Reports will not be
+              generated during suspension periods. Subscription reactivation restores access but does not
+              retroactively generate missed reports.
+            </p>
+            <p className="text-base leading-relaxed">
+              Refunds are not provided for partial billing periods. Cancellations take effect at the end
+              of the current billing cycle.
+            </p>
+          </section>
+
+          {/* Confidentiality */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Confidentiality</h2>
+            <p className="text-base leading-relaxed">
+              All reports generated by Sentra are marked as confidential. You may not distribute, publish,
+              or share reports with unauthorized third parties without explicit written consent.
+            </p>
+            <p className="text-base leading-relaxed">
+              Sentra does not claim ownership of your configuration data or report outputs. However,
+              platform-generated insights remain proprietary to Sentra's analytical models.
+            </p>
+          </section>
+
+          {/* Limitation of Liability */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Limitation of Liability</h2>
+            <p className="text-base leading-relaxed">
+              Sentra provides analytical estimates based on publicly available data. We do not guarantee
+              the accuracy, completeness, or timeliness of any metric or report.
+            </p>
+            <p className="text-base leading-relaxed font-semibold">
+              Sentra is not liable for:
+            </p>
+            <ul className="space-y-2 text-base leading-relaxed list-disc list-inside">
+              <li>Decisions made based on platform outputs</li>
+              <li>Losses resulting from inaccurate or delayed data</li>
+              <li>Third-party platform changes affecting data availability</li>
+              <li>Service interruptions due to maintenance or technical failures</li>
+            </ul>
+            <p className="text-base leading-relaxed">
+              Sentra does not provide legal, strategic, or political advice. Reports are informational tools only.
+            </p>
+          </section>
+
+          {/* Termination */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Termination</h2>
+            <p className="text-base leading-relaxed">
+              Sentra reserves the right to terminate accounts that violate these Terms of Service,
+              engage in fraudulent activity, or misuse the platform.
+            </p>
+            <p className="text-base leading-relaxed">
+              You may terminate your account at any time via account settings. Upon termination,
+              all configuration data and reports will be deleted within 30 days.
+            </p>
+          </section>
+
+          {/* Governing Law */}
+          <section className="space-y-4">
+            <h2 className="text-2xl font-semibold uppercase tracking-wide">Governing Law</h2>
+            <p className="text-base leading-relaxed">
+              These Terms of Service are governed by the laws of the jurisdiction in which Sentra operates.
+              Disputes will be resolved through arbitration before escalation to legal proceedings.
+            </p>
+          </section>
+
+          {/* Analytical Disclaimer */}
+          <section className="space-y-4 bg-graphite/5 p-6 border-l-4 border-signal-cyan/40">
+            <p className="text-base leading-relaxed font-semibold">
+              Sentra provides analytical estimates, not facts. All metrics are computational outputs
+              subject to model limitations and data availability constraints.
+            </p>
+          </section>
+        </div>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t border-charcoal/10 mt-32">
+        <div className="container mx-auto px-8 py-8">
+          <p className="text-xs text-muted-foreground font-mono">
+            Sentra provides analytical estimates based on public digital content.
+            Reports and dashboards reflect aggregated signals, not verified facts.
+            All outputs are confidential and intended for internal use only.
+          </p>
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+export default Terms;

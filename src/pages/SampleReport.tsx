@@ -63,7 +63,7 @@ const SampleReport = () => {
   return (
     <div className="min-h-screen bg-off-white text-charcoal">
       {/* Header */}
-      <header className="bg-charcoal text-off-white border-b border-signal-cyan/20 print:hidden relative">
+      <header className="bg-charcoal text-off-white border-b border-signal-cyan/20 print:hidden">
         <div className="container mx-auto px-8 py-4 flex justify-between items-center">
           <Button
             variant="ghost"
@@ -73,10 +73,6 @@ const SampleReport = () => {
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back
           </Button>
-          
-          <div className="absolute right-8 top-4 bg-red-600 text-white px-4 py-2 rounded text-xs uppercase tracking-wide font-semibold">
-            Confidential - Internal Use Only
-          </div>
           
           <Button
             variant="outline"
@@ -91,6 +87,13 @@ const SampleReport = () => {
 
       {/* PDF Preview */}
       <div className="container mx-auto px-8 py-12 max-w-5xl">
+        {/* Confidential Badge - Inside PDF */}
+        <div className="flex justify-end mb-4">
+          <div className="bg-severe-red text-off-white px-4 py-2 text-xs uppercase tracking-wide font-semibold">
+            Confidential - Internal Use Only
+          </div>
+        </div>
+
         {/* Cover Page */}
         <div className="bg-white p-16 mb-8 border border-charcoal/10">
           <Logo size="md" className="mb-16" showWordmark={true} />
