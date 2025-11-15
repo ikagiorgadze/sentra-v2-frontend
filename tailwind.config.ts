@@ -13,7 +13,18 @@ export default {
       },
     },
     extend: {
+      fontFamily: {
+        sans: ['Space Grotesk', 'system-ui', 'sans-serif'],
+        mono: ['IBM Plex Mono', 'monospace'],
+      },
       colors: {
+        charcoal: "hsl(var(--charcoal))",
+        graphite: "hsl(var(--graphite))",
+        "signal-cyan": "hsl(var(--signal-cyan))",
+        "ice-blue": "hsl(var(--ice-blue))",
+        amber: "hsl(var(--amber))",
+        "off-white": "hsl(var(--off-white))",
+        "severe-red": "hsl(var(--severe-red))",
         border: "hsl(var(--border))",
         input: "hsl(var(--input))",
         ring: "hsl(var(--ring))",
@@ -47,21 +58,15 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
-        sidebar: {
-          DEFAULT: "hsl(var(--sidebar-background))",
-          foreground: "hsl(var(--sidebar-foreground))",
-          primary: "hsl(var(--sidebar-primary))",
-          "primary-foreground": "hsl(var(--sidebar-primary-foreground))",
-          accent: "hsl(var(--sidebar-accent))",
-          "accent-foreground": "hsl(var(--sidebar-accent-foreground))",
-          border: "hsl(var(--sidebar-border))",
-          ring: "hsl(var(--sidebar-ring))",
-        },
       },
       borderRadius: {
         lg: "var(--radius)",
         md: "calc(var(--radius) - 2px)",
         sm: "calc(var(--radius) - 4px)",
+      },
+      boxShadow: {
+        'glow-cyan': '0 0 20px hsl(var(--glow-cyan))',
+        'glow-cyan-strong': '0 0 40px hsl(var(--signal-cyan) / 0.3)',
       },
       keyframes: {
         "accordion-down": {
