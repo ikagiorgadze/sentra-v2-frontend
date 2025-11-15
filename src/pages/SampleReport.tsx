@@ -2,9 +2,59 @@ import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { ArrowLeft, Download } from "lucide-react";
+import { TrendLineChart } from "@/components/charts/TrendLineChart";
+import { TrendBarChart } from "@/components/charts/TrendBarChart";
 
 const SampleReport = () => {
   const navigate = useNavigate();
+
+  // Chart data
+  const sentimentData = [
+    { day: 'Mon', value: 12 },
+    { day: 'Tue', value: 8 },
+    { day: 'Wed', value: 14 },
+    { day: 'Thu', value: 17 },
+    { day: 'Fri', value: 19 },
+    { day: 'Sat', value: 21 },
+    { day: 'Sun', value: 20 }
+  ];
+
+  const mentionsData = [
+    { day: 'Mon', value: 6800 },
+    { day: 'Tue', value: 7200 },
+    { day: 'Wed', value: 6400 },
+    { day: 'Thu', value: 8100 },
+    { day: 'Fri', value: 8600 },
+    { day: 'Sat', value: 9800 },
+    { day: 'Sun', value: 10400 }
+  ];
+
+  const botActivityData = [
+    { day: 'Mon', value: 28 },
+    { day: 'Tue', value: 27 },
+    { day: 'Wed', value: 26 },
+    { day: 'Thu', value: 25 },
+    { day: 'Fri', value: 24 },
+    { day: 'Sat', value: 23 },
+    { day: 'Sun', value: 22 }
+  ];
+
+  const engagementData = [
+    { day: 'Mon', value: 3.8 },
+    { day: 'Tue', value: 3.4 },
+    { day: 'Wed', value: 4.7 },
+    { day: 'Thu', value: 3.9 },
+    { day: 'Fri', value: 5.1 },
+    { day: 'Sat', value: 4.3 },
+    { day: 'Sun', value: 6.2 }
+  ];
+
+  const formatNumber = (value: number) => {
+    if (value >= 1000) {
+      return `${(value / 1000).toFixed(1)}K`;
+    }
+    return value.toString();
+  };
 
   return (
     <div className="min-h-screen bg-off-white text-charcoal">
@@ -105,53 +155,48 @@ const SampleReport = () => {
           <div className="grid grid-cols-2 gap-6 mb-12">
             <div className="border border-charcoal/10 p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Sentiment Over Time (7 Days)</p>
-              <div className="h-32 bg-graphite/5 flex items-end justify-around gap-1 p-4">
-                <div className="bg-signal-cyan/60 w-full" style={{ height: '45%' }}></div>
-                <div className="bg-signal-cyan/60 w-full" style={{ height: '55%' }}></div>
-                <div className="bg-signal-cyan/60 w-full" style={{ height: '50%' }}></div>
-                <div className="bg-signal-cyan/60 w-full" style={{ height: '70%' }}></div>
-                <div className="bg-signal-cyan/60 w-full" style={{ height: '65%' }}></div>
-                <div className="bg-signal-cyan/60 w-full" style={{ height: '80%' }}></div>
-                <div className="bg-signal-cyan w-full" style={{ height: '85%' }}></div>
+              <div className="h-56">
+                <TrendLineChart 
+                  data={sentimentData} 
+                  color="hsl(var(--signal-cyan))" 
+                  domain={[0, 24]}
+                />
               </div>
             </div>
 
             <div className="border border-charcoal/10 p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Daily Mentions Volume</p>
-              <div className="h-32 bg-graphite/5 flex items-end justify-around gap-1 p-4">
-                <div className="bg-graphite w-full" style={{ height: '60%' }}></div>
-                <div className="bg-graphite w-full" style={{ height: '65%' }}></div>
-                <div className="bg-graphite w-full" style={{ height: '55%' }}></div>
-                <div className="bg-graphite w-full" style={{ height: '70%' }}></div>
-                <div className="bg-graphite w-full" style={{ height: '75%' }}></div>
-                <div className="bg-graphite w-full" style={{ height: '85%' }}></div>
-                <div className="bg-charcoal w-full" style={{ height: '90%' }}></div>
+              <div className="h-56">
+                <TrendBarChart 
+                  data={mentionsData} 
+                  color="hsl(var(--charcoal))" 
+                  domain={[0, 12000]}
+                  formatter={formatNumber}
+                />
               </div>
             </div>
 
             <div className="border border-charcoal/10 p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Bot Activity Trend</p>
-              <div className="h-32 bg-graphite/5 flex items-end justify-around gap-1 p-4">
-                <div className="bg-amber/60 w-full" style={{ height: '50%' }}></div>
-                <div className="bg-amber/60 w-full" style={{ height: '45%' }}></div>
-                <div className="bg-amber/60 w-full" style={{ height: '40%' }}></div>
-                <div className="bg-amber/60 w-full" style={{ height: '35%' }}></div>
-                <div className="bg-amber/60 w-full" style={{ height: '30%' }}></div>
-                <div className="bg-amber/60 w-full" style={{ height: '25%' }}></div>
-                <div className="bg-amber w-full" style={{ height: '22%' }}></div>
+              <div className="h-56">
+                <TrendLineChart 
+                  data={botActivityData} 
+                  color="hsl(var(--amber))" 
+                  domain={[0, 30]}
+                  formatter={(value) => `${value}%`}
+                />
               </div>
             </div>
 
             <div className="border border-charcoal/10 p-4">
               <p className="text-xs text-muted-foreground uppercase tracking-wide mb-4">Engagement Spikes</p>
-              <div className="h-32 bg-graphite/5 flex items-end justify-around gap-1 p-4">
-                <div className="bg-ice-blue w-full" style={{ height: '40%' }}></div>
-                <div className="bg-ice-blue w-full" style={{ height: '35%' }}></div>
-                <div className="bg-ice-blue w-full" style={{ height: '55%' }}></div>
-                <div className="bg-ice-blue w-full" style={{ height: '45%' }}></div>
-                <div className="bg-ice-blue w-full" style={{ height: '60%' }}></div>
-                <div className="bg-ice-blue w-full" style={{ height: '50%' }}></div>
-                <div className="bg-signal-cyan w-full" style={{ height: '70%' }}></div>
+              <div className="h-56">
+                <TrendLineChart 
+                  data={engagementData} 
+                  color="hsl(var(--ice-blue))" 
+                  domain={[0, 8]}
+                  formatter={(value) => `${value}%`}
+                />
               </div>
             </div>
           </div>
