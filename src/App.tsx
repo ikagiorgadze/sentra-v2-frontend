@@ -14,6 +14,11 @@ import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
 import Billing from "./pages/Billing";
 import SampleReport from "./pages/SampleReport";
+import About from "./pages/About";
+import Privacy from "./pages/Privacy";
+import Terms from "./pages/Terms";
+import Contact from "./pages/Contact";
+import Cookies from "./pages/Cookies";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +39,11 @@ const App = () => {
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/sample-report" element={<SampleReport />} />
+              <Route path="/about" element={<About />} />
+              <Route path="/privacy" element={<Privacy />} />
+              <Route path="/terms" element={<Terms />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/cookies" element={<Cookies />} />
               
               <Route path="/register" element={
                 <AuthRoute><Register /></AuthRoute>
