@@ -13,12 +13,82 @@ interface UserStateContextType {
 
 const UserStateContext = createContext<UserStateContextType | undefined>(undefined);
 
+const migrateOldConfig = (oldConfig: any): OnboardingConfig | null => {
+  if (!oldConfig) return null;
+  
+  // If already new format, return as-is
+  if (oldConfig.leader && oldConfig.channels) {
+    return oldConfig;
+  }
+
+  // Migrate old format to new
+  return {
+    leader: {
+      name: oldConfig.leaders || "",
+      role: "",
+      party: oldConfig.party || "",
+      region: oldConfig.region || "",
+    },
+    opponents: oldConfig.opposition ? oldConfig.opposition.split(',').map((s: string) => s.trim()) : [],
+    topics: oldConfig.topics ? oldConfig.topics.split(',').map((s: string) => s.trim()) : [],
+    channels: {
+      x: {
+        enabled: oldConfig.dataSources?.includes('X (Twitter)') || false,
+        includeTerms: oldConfig.leaders || "",
+        excludeTerms: "",
+        language: oldConfig.language || "en",
+      },
+      facebook: {
+        enabled: oldConfig.dataSources?.includes('Facebook') || false,
+        includeTerms: oldConfig.leaders || "",
+        excludeTerms: "",
+        language: oldConfig.language || "en",
+      },
+      news: {
+        enabled: oldConfig.dataSources?.includes('News Sites') || false,
+        includeTerms: oldConfig.leaders || "",
+        excludeTerms: "",
+        language: oldConfig.language || "en",
+      },
+    },
+    pdfContent: {
+      sections: {
+        totalMentions: true,
+        netSentiment: oldConfig.metrics?.includes('Net Sentiment') || true,
+        botShare: oldConfig.metrics?.includes('Bot Activity Detection') || true,
+        engagementRate: true,
+        dominantTopic: true,
+        trendDashboard: true,
+        topKeywords: true,
+        topInfluencers: true,
+        oppositionComparison: oldConfig.metrics?.includes('Opposition Comparison') || true,
+      },
+      executiveSummaryMetrics: ["totalMentions", "netSentiment", "botShare", "engagementRate"],
+      aiSummaryEnabled: true,
+    },
+    delivery: {
+      frequency: oldConfig.frequency || "weekly",
+      dayOfWeek: "monday",
+      timeOfDay: oldConfig.timeOfDay || "08:00",
+      timezone: "UTC",
+      recipients: oldConfig.recipients ? oldConfig.recipients.split(',').map((s: string) => s.trim()) : [],
+      attachPdf: true,
+      dashboardLink: true,
+    },
+  };
+};
+
 export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   const [userState, setUserState] = useState<UserState>(() => {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
       try {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        // Migrate old configuration format if needed
+        if (parsed.configuration) {
+          parsed.configuration = migrateOldConfig(parsed.configuration);
+        }
+        return parsed;
       } catch {
         return DEFAULT_USER_STATE;
       }
