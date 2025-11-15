@@ -35,10 +35,19 @@ const Register = () => {
   return (
     <div className="min-h-screen bg-charcoal text-off-white flex items-center justify-center p-8">
       <div className="w-full max-w-md">
-        <div className="mb-12 text-center">
-          <Logo size="lg" className="justify-center mb-6" />
-          <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">Registration</h1>
-          <p className="text-sm text-muted-foreground">Authorized personnel only</p>
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="text-off-white hover:text-signal-cyan mb-8"
+          >
+            ← Back to Home
+          </Button>
+          <div className="text-center">
+            <Logo size="lg" className="justify-center mb-6" />
+            <h1 className="text-2xl font-bold uppercase tracking-wider mb-2">Registration</h1>
+            <p className="text-sm text-muted-foreground">Authorized personnel only</p>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -151,11 +160,11 @@ const Register = () => {
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
-            Already registered?{" "}
+            Already have access?{" "}
             <button
               type="button"
               onClick={() => navigate('/login')}
-              className="text-signal-cyan hover:underline"
+              className="text-signal-cyan hover:underline font-semibold"
             >
               Sign in
             </button>
