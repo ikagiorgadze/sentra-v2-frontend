@@ -60,8 +60,8 @@ const PendingDashboard = () => {
               <Database className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-sm uppercase tracking-wider mb-2 text-muted-foreground">Entities Tracked</h3>
-            <p className="text-3xl font-mono text-muted-foreground">--</p>
-            <p className="text-xs text-muted-foreground/70 mt-2">Awaiting data collection</p>
+            <p className="text-3xl font-mono text-muted-foreground">{userState.configuration?.leader?.name ? '1' : '--'}</p>
+            <p className="text-xs text-muted-foreground/70 mt-2">{userState.configuration?.leader?.name || 'Awaiting data collection'}</p>
           </Card>
 
           <Card className="p-6 border-border/50 bg-charcoal/20">
@@ -69,7 +69,12 @@ const PendingDashboard = () => {
               <Activity className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-sm uppercase tracking-wider mb-2 text-muted-foreground">Data Sources</h3>
-            <p className="text-3xl font-mono text-muted-foreground">--</p>
+            <p className="text-3xl font-mono text-muted-foreground">
+              {userState.configuration?.channels ? 
+                ((userState.configuration.channels.x?.enabled ? 1 : 0) + 
+                 (userState.configuration.channels.facebook?.enabled ? 1 : 0) + 
+                 (userState.configuration.channels.news?.enabled ? 1 : 0)) : '--'}
+            </p>
             <p className="text-xs text-muted-foreground/70 mt-2">Initializing connections</p>
           </Card>
 
@@ -78,7 +83,10 @@ const PendingDashboard = () => {
               <TrendingUp className="w-8 h-8 text-muted-foreground" />
             </div>
             <h3 className="text-sm uppercase tracking-wider mb-2 text-muted-foreground">Metrics Enabled</h3>
-            <p className="text-3xl font-mono text-muted-foreground">--</p>
+            <p className="text-3xl font-mono text-muted-foreground">
+              {userState.configuration?.pdfContent?.sections ? 
+                Object.values(userState.configuration.pdfContent.sections).filter(Boolean).length : '--'}
+            </p>
             <p className="text-xs text-muted-foreground/70 mt-2">Processing baseline</p>
           </Card>
         </div>
@@ -121,7 +129,11 @@ const PendingDashboard = () => {
             <div>
               <h4 className="font-semibold mb-2 uppercase tracking-wide text-sm">What's Happening Now</h4>
               <ul className="space-y-2 text-sm text-muted-foreground">
-                <li>• Establishing connections to {userState.configuration?.dataSources?.length || 0} data sources</li>
+              <li>• Establishing connections to {
+                (userState.configuration?.channels?.x?.enabled ? 1 : 0) + 
+                (userState.configuration?.channels?.facebook?.enabled ? 1 : 0) + 
+                (userState.configuration?.channels?.news?.enabled ? 1 : 0)
+              } data sources</li>
                 <li>• Indexing historical data for baseline analysis</li>
                 <li>• Calibrating sentiment and engagement metrics</li>
                 <li>• Preparing personalized dashboards and alerts</li>

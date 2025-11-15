@@ -37,8 +37,8 @@ const ActiveDashboard = () => {
               <Database className="w-8 h-8 text-signal-cyan" />
             </div>
             <h3 className="text-sm uppercase tracking-wider mb-2 text-muted-foreground">Entities Tracked</h3>
-            <p className="text-3xl font-mono">12</p>
-            <p className="text-xs text-signal-cyan mt-2">3 leaders, 9 opposition figures</p>
+            <p className="text-3xl font-mono">{userState.configuration?.leader?.name ? 1 : 0}</p>
+            <p className="text-xs text-signal-cyan mt-2">{userState.configuration?.leader?.name || 'No configuration'}</p>
           </Card>
 
           <Card className="p-6">

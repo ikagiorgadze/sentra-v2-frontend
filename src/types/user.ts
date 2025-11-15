@@ -1,17 +1,48 @@
-export interface OnboardingConfig {
-  leaders: string;
-  party: string;
-  topics: string;
-  opposition: string;
-  dataSources: string[];
-  region: string;
-  metrics: string[];
-  reportType: string;
-  frequency: string;
-  timeOfDay: string;
-  recipients: string;
+export interface ChannelConfig {
+  enabled: boolean;
+  includeTerms: string;
+  excludeTerms: string;
   language: string;
-  deliveryMethod: string;
+}
+
+export interface OnboardingConfig {
+  leader: {
+    name: string;
+    role: string;
+    party: string;
+    region: string;
+  };
+  opponents: string[];
+  topics: string[];
+  channels: {
+    x: ChannelConfig;
+    facebook: ChannelConfig;
+    news: ChannelConfig;
+  };
+  pdfContent: {
+    sections: {
+      totalMentions: boolean;
+      netSentiment: boolean;
+      botShare: boolean;
+      engagementRate: boolean;
+      dominantTopic: boolean;
+      trendDashboard: boolean;
+      topKeywords: boolean;
+      topInfluencers: boolean;
+      oppositionComparison: boolean;
+    };
+    executiveSummaryMetrics: string[];
+    aiSummaryEnabled: boolean;
+  };
+  delivery: {
+    frequency: string;
+    dayOfWeek?: string;
+    timeOfDay: string;
+    timezone: string;
+    recipients: string[];
+    attachPdf: boolean;
+    dashboardLink: boolean;
+  };
 }
 
 export type SubscriptionStatus = 'active' | 'inactive' | 'trial' | 'expired';
