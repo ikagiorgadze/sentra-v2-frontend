@@ -20,9 +20,18 @@ const Login = () => {
   return (
     <div className="min-h-screen bg-charcoal text-off-white flex items-center justify-center p-8">
       <div className="w-full max-w-md">
-        <div className="mb-12 text-center">
-          <Logo size="lg" className="justify-center mb-6" />
-          <h1 className="text-2xl font-bold uppercase tracking-wider">Access Portal</h1>
+        <div className="mb-8">
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="text-off-white hover:text-signal-cyan mb-8"
+          >
+            ← Back to Home
+          </Button>
+          <div className="text-center">
+            <Logo size="lg" className="justify-center mb-6" />
+            <h1 className="text-2xl font-bold uppercase tracking-wider">Sign In</h1>
+          </div>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
@@ -62,9 +71,9 @@ const Login = () => {
             <button
               type="button"
               onClick={() => navigate('/register')}
-              className="text-signal-cyan hover:underline"
+              className="text-signal-cyan hover:underline font-semibold"
             >
-              Request registration
+              Register
             </button>
           </div>
         </form>
