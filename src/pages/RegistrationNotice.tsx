@@ -14,38 +14,30 @@ const RegistrationNotice = () => {
         <div className="space-y-4">
           <div className="w-24 h-[2px] bg-signal-cyan mx-auto"></div>
           <h1 className="text-3xl font-bold uppercase tracking-wider">
-            Self-Registration Not Active
+            Thank You for Registering
           </h1>
           <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
-            This feature is currently unavailable. To request access to the Sentra platform, 
-            please contact our team directly.
+            Sentra is currently in a private testing phase and is not yet available for public use.
+          </p>
+          <p className="text-lg text-muted-foreground max-w-xl mx-auto leading-relaxed">
+            We appreciate your interest. Your registration helps us prioritize early access and future onboarding.
           </p>
         </div>
 
         <div className="bg-graphite border border-signal-cyan/20 rounded-lg p-8 space-y-6">
           <h2 className="text-xl font-semibold uppercase tracking-wide">Contact Information</h2>
           
-          <div className="space-y-4">
-            <a
-              href="mailto:support@sentra.it.com"
-              className="flex items-center justify-center gap-3 text-lg font-mono text-signal-cyan hover:text-signal-cyan/80 transition-colors"
-            >
-              <Mail className="w-5 h-5" />
-              support@sentra.it.com
-            </a>
-            
-            <a
-              href="mailto:info@sentra.it.com"
-              className="flex items-center justify-center gap-3 text-lg font-mono text-signal-cyan hover:text-signal-cyan/80 transition-colors"
-            >
-              <Mail className="w-5 h-5" />
-              info@sentra.it.com
-            </a>
-          </div>
-
-          <p className="text-sm text-muted-foreground pt-4 border-t border-signal-cyan/10">
-            Response within 48 hours
+          <p className="text-sm text-muted-foreground">
+            For any additional questions or partnership inquiries, please contact us at:
           </p>
+
+          <a
+            href="mailto:support@sentra.it.com"
+            className="flex items-center justify-center gap-3 text-lg font-mono text-signal-cyan hover:text-signal-cyan/80 transition-colors"
+          >
+            <Mail className="w-5 h-5" />
+            support@sentra.it.com
+          </a>
         </div>
 
         <Button
