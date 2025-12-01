@@ -169,7 +169,7 @@ const Privacy = () => {
               <li>Withdraw consent for data processing (results in account termination)</li>
             </ul>
             <p className="text-base leading-relaxed">
-              To exercise these rights, contact <span className="font-mono">privacy@sentra.ai</span>
+              To exercise these rights, contact <span className="font-mono">privacy@sentra.it.com</span>
             </p>
           </section>
 

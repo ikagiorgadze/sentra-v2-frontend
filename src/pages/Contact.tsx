@@ -55,44 +55,44 @@ const Contact = () => {
               <div className="space-y-2">
                 <h3 className="text-sm uppercase tracking-wide text-muted-foreground">General Inquiries</h3>
                 <a
-                  href="mailto:info@sentra.ai"
+                  href="mailto:info@sentra.it.com"
                   className="flex items-center gap-3 text-lg font-mono text-foreground hover:text-signal-cyan transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  info@sentra.ai
+                  info@sentra.it.com
                 </a>
               </div>
 
               <div className="space-y-2">
                 <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Support</h3>
                 <a
-                  href="mailto:support@sentra.ai"
+                  href="mailto:support@sentra.it.com"
                   className="flex items-center gap-3 text-lg font-mono text-foreground hover:text-signal-cyan transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  support@sentra.ai
+                  support@sentra.it.com
                 </a>
               </div>
 
               <div className="space-y-2">
                 <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Privacy Requests</h3>
                 <a
-                  href="mailto:privacy@sentra.ai"
+                  href="mailto:privacy@sentra.it.com"
                   className="flex items-center gap-3 text-lg font-mono text-foreground hover:text-signal-cyan transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  privacy@sentra.ai
+                  privacy@sentra.it.com
                 </a>
               </div>
 
               <div className="space-y-2">
                 <h3 className="text-sm uppercase tracking-wide text-muted-foreground">Press</h3>
                 <a
-                  href="mailto:press@sentra.ai"
+                  href="mailto:press@sentra.it.com"
                   className="flex items-center gap-3 text-lg font-mono text-foreground hover:text-signal-cyan transition-colors"
                 >
                   <Mail className="w-4 h-4" />
-                  press@sentra.ai
+                  press@sentra.it.com
                 </a>
               </div>
             </div>
