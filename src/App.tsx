@@ -10,6 +10,7 @@ import { AuthRoute } from "@/components/AuthRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import Index from "./pages/Index";
 import Register from "./pages/Register";
+import RegistrationNotice from "./pages/RegistrationNotice";
 import Login from "./pages/Login";
 import Onboarding from "./pages/Onboarding";
 import Dashboard from "./pages/Dashboard";
@@ -50,6 +51,7 @@ const App = () => {
               <Route path="/register" element={
                 <AuthRoute><Register /></AuthRoute>
               } />
+              <Route path="/registration-notice" element={<RegistrationNotice />} />
               <Route path="/login" element={
                 <AuthRoute><Login /></AuthRoute>
               } />

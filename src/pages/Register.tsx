@@ -36,8 +36,7 @@ const Register = () => {
       return;
     }
     
-    login(formData.email);
-    navigate('/onboarding');
+    navigate('/registration-notice');
   };
 
   return (
