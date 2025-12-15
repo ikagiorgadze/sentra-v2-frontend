@@ -10,8 +10,8 @@ const PendingDashboard = () => {
   const navigate = useNavigate();
   const { userState, logout } = useUserState();
 
-  const handleSignOut = () => {
-    logout();
+  const handleSignOut = async () => {
+    await logout();
     navigate("/");
   };
 

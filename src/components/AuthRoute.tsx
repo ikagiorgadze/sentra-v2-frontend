@@ -8,15 +8,25 @@ interface AuthRouteProps {
 }
 
 export const AuthRoute = ({ children }: AuthRouteProps) => {
-  const { userState } = useUserState();
+  const { userState, isLoading } = useUserState();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (userState.isAuthenticated) {
       const correctRoute = determineUserRoute(userState);
       navigate(correctRoute);
     }
-  }, [userState, navigate]);
+  }, [userState, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-charcoal flex items-center justify-center">
+        <div className="text-off-white">Loading...</div>
+      </div>
+    );
+  }
 
   if (userState.isAuthenticated) {
     return null;

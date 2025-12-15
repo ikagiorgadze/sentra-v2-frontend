@@ -8,10 +8,12 @@ interface ProtectedRouteProps {
 }
 
 export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const { userState } = useUserState();
+  const { userState, isLoading } = useUserState();
   const navigate = useNavigate();
 
   useEffect(() => {
+    if (isLoading) return;
+
     if (!userState.isAuthenticated) {
       navigate('/login');
       return;
@@ -23,7 +25,15 @@ export const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     if (currentPath !== correctRoute && !currentPath.startsWith(correctRoute.split('?')[0])) {
       navigate(correctRoute);
     }
-  }, [userState, navigate]);
+  }, [userState, isLoading, navigate]);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-charcoal flex items-center justify-center">
+        <div className="text-off-white">Loading...</div>
+      </div>
+    );
+  }
 
   if (!userState.isAuthenticated) {
     return null;

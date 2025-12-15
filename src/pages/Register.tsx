@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
-import { useUserState } from "@/contexts/UserStateContext";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import {
   Select,
   SelectContent,
@@ -16,7 +17,7 @@ import {
 
 const Register = () => {
   const navigate = useNavigate();
-  const { login } = useUserState();
+  const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
     email: "",
     fullName: "",
@@ -29,13 +30,52 @@ const Register = () => {
     authorized: false,
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (formData.role === 'other' && !formData.customRole.trim()) {
+      toast.error('Please specify your role');
       return;
     }
-    
+
+    if (formData.password !== formData.confirmPassword) {
+      toast.error('Passwords do not match');
+      return;
+    }
+
+    if (formData.password.length < 6) {
+      toast.error('Password must be at least 6 characters');
+      return;
+    }
+
+    setIsLoading(true);
+
+    const { error } = await supabase.auth.signUp({
+      email: formData.email,
+      password: formData.password,
+      options: {
+        emailRedirectTo: `${window.location.origin}/`,
+        data: {
+          full_name: formData.fullName,
+          organization: formData.organization,
+          role: formData.role === 'other' ? formData.customRole : formData.role,
+          country: formData.country,
+        },
+      },
+    });
+
+    setIsLoading(false);
+
+    if (error) {
+      if (error.message.includes('User already registered')) {
+        toast.error('An account with this email already exists. Please sign in instead.');
+      } else {
+        toast.error(error.message);
+      }
+      return;
+    }
+
+    // Registration successful - redirect to notice page
     navigate('/registration-notice');
   };
 
@@ -47,6 +87,7 @@ const Register = () => {
             variant="ghost"
             onClick={() => navigate('/')}
             className="text-off-white hover:text-signal-cyan mb-8"
+            disabled={isLoading}
           >
             ← Back to Home
           </Button>
@@ -67,6 +108,7 @@ const Register = () => {
               className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              disabled={isLoading}
             />
           </div>
 
@@ -79,6 +121,7 @@ const Register = () => {
               className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan"
               value={formData.fullName}
               onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
+              disabled={isLoading}
             />
           </div>
 
@@ -91,6 +134,7 @@ const Register = () => {
               className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan"
               value={formData.organization}
               onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+              disabled={isLoading}
             />
           </div>
 
@@ -101,6 +145,7 @@ const Register = () => {
               onValueChange={(value) => {
                 setFormData({ ...formData, role: value, customRole: value !== 'other' ? '' : formData.customRole });
               }}
+              disabled={isLoading}
             >
               <SelectTrigger className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan">
                 <SelectValue placeholder="Select role" />
@@ -124,6 +169,7 @@ const Register = () => {
                 className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan mt-2"
                 value={formData.customRole}
                 onChange={(e) => setFormData({ ...formData, customRole: e.target.value })}
+                disabled={isLoading}
               />
             )}
           </div>
@@ -137,6 +183,7 @@ const Register = () => {
               className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan"
               value={formData.country}
               onChange={(e) => setFormData({ ...formData, country: e.target.value })}
+              disabled={isLoading}
             />
           </div>
 
@@ -149,6 +196,7 @@ const Register = () => {
               className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan"
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              disabled={isLoading}
             />
           </div>
 
@@ -161,6 +209,7 @@ const Register = () => {
               className="bg-graphite border-signal-cyan/20 focus:border-signal-cyan"
               value={formData.confirmPassword}
               onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+              disabled={isLoading}
             />
           </div>
 
@@ -170,6 +219,7 @@ const Register = () => {
               checked={formData.authorized}
               onCheckedChange={(checked) => setFormData({ ...formData, authorized: checked as boolean })}
               className="border-signal-cyan/20 data-[state=checked]:bg-signal-cyan data-[state=checked]:border-signal-cyan"
+              disabled={isLoading}
             />
             <Label htmlFor="authorized" className="text-sm leading-tight cursor-pointer">
               I confirm I am authorized to receive political analytics.
@@ -179,9 +229,9 @@ const Register = () => {
           <Button 
             type="submit"
             className="w-full bg-signal-cyan text-charcoal hover:bg-signal-cyan/90 font-semibold uppercase tracking-wide"
-            disabled={!formData.authorized}
+            disabled={!formData.authorized || isLoading}
           >
-            Register
+            {isLoading ? 'Registering...' : 'Register'}
           </Button>
 
           <div className="text-center text-sm text-muted-foreground">
@@ -190,6 +240,7 @@ const Register = () => {
               type="button"
               onClick={() => navigate('/login')}
               className="text-signal-cyan hover:underline font-semibold"
+              disabled={isLoading}
             >
               Sign in
             </button>
