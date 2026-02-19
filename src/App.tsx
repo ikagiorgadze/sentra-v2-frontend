@@ -22,6 +22,7 @@ import Terms from "./pages/Terms";
 import Contact from "./pages/Contact";
 import Cookies from "./pages/Cookies";
 import NotFound from "./pages/NotFound";
+import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -64,6 +65,9 @@ const App = () => {
               } />
               <Route path="/billing" element={
                 <ProtectedRoute><Billing /></ProtectedRoute>
+              } />
+              <Route path="/chat" element={
+                <ProtectedRoute><Chat /></ProtectedRoute>
               } />
               
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
