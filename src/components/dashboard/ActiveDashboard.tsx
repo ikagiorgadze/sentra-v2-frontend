@@ -3,7 +3,7 @@ import { useUserState } from "@/contexts/UserStateContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Logo } from "@/components/Logo";
-import { Database, Activity, TrendingUp, Clock, Calendar, CheckCircle2, FileText } from "lucide-react";
+import { Database, Activity, TrendingUp, Clock, Calendar, CheckCircle2, FileText, MessageSquare } from "lucide-react";
 
 const ActiveDashboard = () => {
   const navigate = useNavigate();
@@ -108,6 +108,16 @@ const ActiveDashboard = () => {
                 </div>
               </div>
               <Button onClick={() => navigate("/sample-report")}>View Report</Button>
+            </div>
+          </div>
+        </Card>
+
+        <Card className="p-6 mb-8 border-signal-cyan/30 bg-signal-cyan/5 cursor-pointer hover:bg-signal-cyan/10 transition-colors" onClick={() => navigate("/chat")}>
+          <div className="flex items-center gap-4">
+            <MessageSquare className="w-10 h-10 text-signal-cyan" />
+            <div>
+              <h2 className="text-xl font-semibold uppercase tracking-wide">Intelligence Chat</h2>
+              <p className="text-sm text-muted-foreground">Ask about any topic, entity, or region for a structured briefing</p>
             </div>
           </div>
         </Card>
