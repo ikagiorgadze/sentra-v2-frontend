@@ -1,0 +1,21 @@
+import { cleanup, render, screen } from '@testing-library/react';
+import { afterEach, describe, expect, it } from 'vitest';
+import App from '@/App';
+
+afterEach(() => {
+  cleanup();
+});
+
+describe('route entry points', () => {
+  it('renders landing flow on root route', () => {
+    window.history.pushState({}, '', '/');
+    render(<App />);
+    expect(screen.getByText(/know the mood/i)).toBeInTheDocument();
+  });
+
+  it('renders auth flow on login route', () => {
+    window.history.pushState({}, '', '/login');
+    render(<App />);
+    expect(screen.getByRole('heading', { name: /welcome back|create your account/i })).toBeInTheDocument();
+  });
+});

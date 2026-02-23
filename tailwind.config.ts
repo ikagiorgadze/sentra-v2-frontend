@@ -1,4 +1,5 @@
 import type { Config } from "tailwindcss";
+import tailwindcssAnimate from "tailwindcss-animate";
 
 export default {
   darkMode: ["class"],
@@ -18,45 +19,45 @@ export default {
         mono: ['IBM Plex Mono', 'monospace'],
       },
       colors: {
-        charcoal: "hsl(var(--charcoal))",
-        graphite: "hsl(var(--graphite))",
-        "signal-cyan": "hsl(var(--signal-cyan))",
-        "ice-blue": "hsl(var(--ice-blue))",
-        amber: "hsl(var(--amber))",
-        "off-white": "hsl(var(--off-white))",
-        "severe-red": "hsl(var(--severe-red))",
-        border: "hsl(var(--border))",
-        input: "hsl(var(--input))",
-        ring: "hsl(var(--ring))",
-        background: "hsl(var(--background))",
-        foreground: "hsl(var(--foreground))",
+        charcoal: "var(--charcoal)",
+        graphite: "var(--graphite)",
+        "signal-cyan": "var(--signal-cyan)",
+        "ice-blue": "var(--ice-blue)",
+        amber: "var(--amber)",
+        "off-white": "var(--off-white)",
+        "severe-red": "var(--severe-red)",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         muted: {
-          DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "hsl(var(--popover))",
-          foreground: "hsl(var(--popover-foreground))",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         card: {
-          DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
       },
       borderRadius: {
@@ -65,8 +66,8 @@ export default {
         sm: "calc(var(--radius) - 4px)",
       },
       boxShadow: {
-        'glow-cyan': '0 0 20px hsl(var(--glow-cyan))',
-        'glow-cyan-strong': '0 0 40px hsl(var(--signal-cyan) / 0.3)',
+        "glow-cyan": "0 0 20px var(--glow-cyan)",
+        "glow-cyan-strong": "0 0 40px rgba(63, 214, 208, 0.3)",
       },
       keyframes: {
         "accordion-down": {
@@ -92,5 +93,5 @@ export default {
       },
     },
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [tailwindcssAnimate],
 } satisfies Config;

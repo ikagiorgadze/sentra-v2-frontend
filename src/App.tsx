@@ -4,25 +4,9 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
-import { UserStateProvider } from "@/contexts/UserStateContext";
-import { ProtectedRoute } from "@/components/ProtectedRoute";
-import { AuthRoute } from "@/components/AuthRoute";
 import { ScrollToTop } from "@/components/ScrollToTop";
-import Index from "./pages/Index";
-import Register from "./pages/Register";
-import RegistrationNotice from "./pages/RegistrationNotice";
-import Login from "./pages/Login";
-import Onboarding from "./pages/Onboarding";
-import Dashboard from "./pages/Dashboard";
-import Billing from "./pages/Billing";
-import SampleReport from "./pages/SampleReport";
-import About from "./pages/About";
-import Privacy from "./pages/Privacy";
-import Terms from "./pages/Terms";
-import Contact from "./pages/Contact";
-import Cookies from "./pages/Cookies";
+import { AppShell } from "@/features/sentra/components/AppShell";
 import NotFound from "./pages/NotFound";
-import Chat from "./pages/Chat";
 
 const queryClient = new QueryClient();
 
@@ -34,48 +18,33 @@ const App = () => {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <UserStateProvider>
-        <TooltipProvider>
-          <Toaster />
-          <Sonner />
-          <BrowserRouter>
-            <ScrollToTop />
-            <Routes>
-              <Route path="/" element={<Index />} />
-              <Route path="/sample-report" element={<SampleReport />} />
-              <Route path="/about" element={<About />} />
-              <Route path="/privacy" element={<Privacy />} />
-              <Route path="/terms" element={<Terms />} />
-              <Route path="/contact" element={<Contact />} />
-              <Route path="/cookies" element={<Cookies />} />
-              
-              <Route path="/register" element={
-                <AuthRoute><Register /></AuthRoute>
-              } />
-              <Route path="/registration-notice" element={<RegistrationNotice />} />
-              <Route path="/login" element={
-                <AuthRoute><Login /></AuthRoute>
-              } />
-              
-              <Route path="/onboarding" element={
-                <ProtectedRoute><Onboarding /></ProtectedRoute>
-              } />
-              <Route path="/dashboard" element={
-                <ProtectedRoute><Dashboard /></ProtectedRoute>
-              } />
-              <Route path="/billing" element={
-                <ProtectedRoute><Billing /></ProtectedRoute>
-              } />
-              <Route path="/chat" element={
-                <ProtectedRoute><Chat /></ProtectedRoute>
-              } />
-              
-              {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </BrowserRouter>
-        </TooltipProvider>
-      </UserStateProvider>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <ScrollToTop />
+          <Routes>
+            <Route path="/" element={<AppShell initialView="landing" />} />
+            <Route path="/login" element={<AppShell initialView="auth" />} />
+            <Route path="/register" element={<AppShell initialView="auth" />} />
+            <Route path="/registration-notice" element={<AppShell initialView="auth" />} />
+
+            <Route path="/chat" element={<AppShell initialView="app" />} />
+            <Route path="/dashboard" element={<AppShell initialView="app" />} />
+            <Route path="/billing" element={<AppShell initialView="app" />} />
+            <Route path="/onboarding" element={<AppShell initialView="app" />} />
+            <Route path="/sample-report" element={<AppShell initialView="app" />} />
+
+            <Route path="/about" element={<AppShell initialView="landing" />} />
+            <Route path="/privacy" element={<AppShell initialView="landing" />} />
+            <Route path="/terms" element={<AppShell initialView="landing" />} />
+            <Route path="/contact" element={<AppShell initialView="landing" />} />
+            <Route path="/cookies" element={<AppShell initialView="landing" />} />
+
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </BrowserRouter>
+      </TooltipProvider>
     </QueryClientProvider>
   );
 };
