@@ -6,6 +6,7 @@ import { QueryInput } from '@/features/sentra/components/QueryInput';
 import { RightPanel } from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
+import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
 import { AppState, AppView, Investigation } from '@/features/sentra/types';
 
 interface AppShellProps {
@@ -42,11 +43,20 @@ function detectDomain(query: string): string {
 }
 
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
-  const [currentView, setCurrentView] = useState<AppView>(initialView);
+  const { isAuthenticated } = useBackendSession();
+  const [currentView, setCurrentView] = useState<AppView>(() =>
+    initialView === 'app' && !isAuthenticated ? 'auth' : initialView,
+  );
   const [state, setState] = useState<AppState>('idle');
   const [query, setQuery] = useState('');
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [currentInvestigationId, setCurrentInvestigationId] = useState<string | undefined>();
+
+  useEffect(() => {
+    if (currentView === 'app' && !isAuthenticated) {
+      setCurrentView('auth');
+    }
+  }, [currentView, isAuthenticated]);
 
   const handleGetStarted = () => {
     setCurrentView('auth');
