@@ -53,16 +53,30 @@ npm run dev
 - Auth:
   - `POST /v1/auth/signup`
   - `POST /v1/auth/login`
-- Jobs:
-  - `POST /v1/jobs`
+- Conversations:
+  - `POST /v1/conversations`
+  - `GET /v1/conversations`
+  - `GET /v1/conversations/{conversation_id}`
+  - `POST /v1/conversations/{conversation_id}/messages`
+  - `POST /v1/conversations/{conversation_id}/confirm-job`
+- Jobs (polling after confirm):
   - `GET /v1/jobs/{jobId}`
-  - `GET /v1/jobs`
 - Analytics:
   - `GET /v1/jobs/{jobId}/overview`
   - `GET /v1/jobs/{jobId}/sentiment-overview`
   - `GET /v1/jobs/{jobId}/sentiment-timeseries`
 
 The frontend stores backend access tokens in local storage and sends `Authorization: Bearer <token>` on protected API calls.
+
+## Conversation-to-Job UX flow
+1. User types a freeform request in the chat composer.
+2. Frontend creates a conversation if needed (`POST /v1/conversations`) and sends message (`POST /messages`).
+3. Backend returns assistant reply and (when enough context exists) a `pending_proposal`.
+4. UI renders a **Confirm Query** card with `Confirm` and `Edit`.
+5. Only on `Confirm` does frontend call `POST /confirm-job`.
+6. Frontend switches to running state, polls `GET /v1/jobs/{jobId}`, then renders results.
+
+Important: the app is intentionally configured to require explicit confirmation for every job creation.
 
 ## Test and build
 - Run tests:
