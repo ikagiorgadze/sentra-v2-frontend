@@ -5,7 +5,8 @@ import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { loginWithBackend, signupWithBackend } from "@/features/sentra/api/auth";
+import { setAccessToken } from "@/lib/auth/tokenStorage";
 import { toast } from "sonner";
 import {
   Select,
@@ -50,33 +51,21 @@ const Register = () => {
 
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signUp({
-      email: formData.email,
-      password: formData.password,
-      options: {
-        emailRedirectTo: `${window.location.origin}/`,
-        data: {
-          full_name: formData.fullName,
-          organization: formData.organization,
-          role: formData.role === 'other' ? formData.customRole : formData.role,
-          country: formData.country,
-        },
-      },
-    });
-
-    setIsLoading(false);
-
-    if (error) {
-      if (error.message.includes('User already registered')) {
+    try {
+      await signupWithBackend(formData.email, formData.password);
+      const token = await loginWithBackend(formData.email, formData.password);
+      setAccessToken(token.access_token);
+      navigate('/chat');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Registration failed';
+      if (message.toLowerCase().includes('already')) {
         toast.error('An account with this email already exists. Please sign in instead.');
       } else {
-        toast.error(error.message);
+        toast.error(message);
       }
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    // Registration successful - redirect to notice page
-    navigate('/registration-notice');
   };
 
   return (

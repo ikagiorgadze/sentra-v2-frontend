@@ -4,7 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/Logo";
 import { useNavigate } from "react-router-dom";
-import { supabase } from "@/integrations/supabase/client";
+import { loginWithBackend } from "@/features/sentra/api/auth";
+import { setAccessToken } from "@/lib/auth/tokenStorage";
 import { toast } from "sonner";
 
 const Login = () => {
@@ -19,26 +20,20 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email: formData.email,
-      password: formData.password,
-    });
-
-    setIsLoading(false);
-
-    if (error) {
-      if (error.message.includes('Email not confirmed')) {
-        toast.error('Your account is pending activation. Please contact support@sentra.it.com');
-      } else if (error.message.includes('Invalid login credentials')) {
+    try {
+      const token = await loginWithBackend(formData.email, formData.password);
+      setAccessToken(token.access_token);
+      navigate('/chat');
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Login failed';
+      if (message.toLowerCase().includes('invalid')) {
         toast.error('Invalid email or password');
       } else {
-        toast.error(error.message);
+        toast.error(message);
       }
-      return;
+    } finally {
+      setIsLoading(false);
     }
-
-    // Session will be set by onAuthStateChange in UserStateContext
-    // Navigation will be handled by AuthRoute detecting authenticated state
   };
 
   return (

@@ -1,14 +1,13 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
-import { User, Session } from '@supabase/supabase-js';
-import { supabase } from '@/integrations/supabase/client';
-import { UserState, DEFAULT_USER_STATE, OnboardingConfig, OpponentProfile } from '@/types/user';
+import { UserState, OnboardingConfig, OpponentProfile } from '@/types/user';
+import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
 
 const CONFIG_STORAGE_KEY = 'sentra_user_config';
 
 interface UserStateContextType {
   userState: UserState;
-  session: Session | null;
-  user: User | null;
+  session: BackendSession | null;
+  user: BackendUser | null;
   isLoading: boolean;
   logout: () => Promise<void>;
   updateUserState: (updates: Partial<UserState>) => void;
@@ -36,8 +35,41 @@ interface LegacyConfig {
   recipients?: string;
 }
 
+interface BackendUser {
+  id: string;
+  email: string;
+  role: string;
+}
+
+interface BackendSession {
+  accessToken: string;
+  expiresAt: string | null;
+}
+
+interface JwtPayload {
+  sub?: string;
+  email?: string;
+  role?: string;
+  exp?: number;
+}
+
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null;
+
+const parseJwtPayload = (token: string): JwtPayload | null => {
+  const parts = token.split('.');
+  if (parts.length < 2) {
+    return null;
+  }
+
+  try {
+    const normalized = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=');
+    return JSON.parse(atob(padded)) as JwtPayload;
+  } catch {
+    return null;
+  }
+};
 
 const parseCsv = (value: string | undefined): string[] =>
   value ? value.split(',').map((item) => item.trim()).filter(Boolean) : [];
@@ -154,8 +186,8 @@ const migrateOldConfig = (oldConfig: unknown): OnboardingConfig | null => {
 };
 
 export const UserStateProvider = ({ children }: { children: ReactNode }) => {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<BackendSession | null>(null);
+  const [user, setUser] = useState<BackendUser | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   
   // Configuration stored in localStorage until profiles table is ready
@@ -203,25 +235,44 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
     configuration: localConfig.configuration,
   };
 
-  // Setup auth state listener
+  // Initialize backend-token-backed auth state once on mount.
   useEffect(() => {
-    // Set up listener FIRST
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        setSession(session);
-        setUser(session?.user ?? null);
-        setIsLoading(false);
-      }
-    );
-
-    // THEN check for existing session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
+    const token = getAccessToken();
+    if (!token) {
+      setSession(null);
+      setUser(null);
       setIsLoading(false);
-    });
+      return;
+    }
 
-    return () => subscription.unsubscribe();
+    const payload = parseJwtPayload(token);
+    if (!payload?.sub || !payload?.email || !payload?.exp) {
+      clearAccessToken();
+      setSession(null);
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    const now = Math.floor(Date.now() / 1000);
+    if (payload.exp <= now) {
+      clearAccessToken();
+      setSession(null);
+      setUser(null);
+      setIsLoading(false);
+      return;
+    }
+
+    setSession({
+      accessToken: token,
+      expiresAt: new Date(payload.exp * 1000).toISOString(),
+    });
+    setUser({
+      id: payload.sub,
+      email: payload.email,
+      role: payload.role ?? 'user',
+    });
+    setIsLoading(false);
   }, []);
 
   // Persist local config to localStorage
@@ -230,7 +281,9 @@ export const UserStateProvider = ({ children }: { children: ReactNode }) => {
   }, [localConfig]);
 
   const logout = async () => {
-    await supabase.auth.signOut();
+    clearAccessToken();
+    setSession(null);
+    setUser(null);
     setLocalConfig({
       configuration: null,
       hasCompletedOnboarding: false,
