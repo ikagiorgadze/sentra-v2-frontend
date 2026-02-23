@@ -6,6 +6,7 @@ import { QueryInput } from '@/features/sentra/components/QueryInput';
 import { RightPanel } from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
+import { createJob, getJob } from '@/features/sentra/api/jobs';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
 import { AppState, AppView, Investigation } from '@/features/sentra/types';
 
@@ -51,6 +52,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   const [query, setQuery] = useState('');
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [currentInvestigationId, setCurrentInvestigationId] = useState<string | undefined>();
+  const [activeJobId, setActiveJobId] = useState<string | undefined>();
 
   useEffect(() => {
     if (currentView === 'app' && !isAuthenticated) {
@@ -84,16 +86,25 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setCurrentInvestigationId(newInvestigation.id);
   };
 
-  const handleQuery = (userQuery: string) => {
+  const handleQuery = async (userQuery: string) => {
     setQuery(userQuery);
     setCurrentInvestigationId(undefined);
     setState('running');
+    setActiveJobId(undefined);
+
+    try {
+      const created = await createJob(userQuery);
+      setActiveJobId(created.id);
+    } catch {
+      setState('idle');
+    }
   };
 
   const handleNewInvestigation = () => {
     setState('idle');
     setQuery('');
     setCurrentInvestigationId(undefined);
+    setActiveJobId(undefined);
   };
 
   const handleSelectInvestigation = (id: string) => {
@@ -102,32 +113,64 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setQuery(investigation.query);
     setState('results');
     setCurrentInvestigationId(id);
+    setActiveJobId(undefined);
   };
 
   useEffect(() => {
-    if (state === 'running') {
-      const timeout = setTimeout(() => {
-        setState('results');
-
-        if (!currentInvestigationId) {
-          const timestamp = Date.now();
-          const newInvestigation: Investigation = {
-            id: timestamp.toString(),
-            title: query,
-            timestamp: getRelativeTime(timestamp),
-            domain: detectDomain(query),
-            query,
-          };
-          setInvestigations((prev) => [newInvestigation, ...prev]);
-          setCurrentInvestigationId(newInvestigation.id);
-        }
-      }, processingDelayMs);
-
-      return () => clearTimeout(timeout);
+    if (state !== 'running' || !activeJobId) {
+      return undefined;
     }
 
-    return undefined;
-  }, [state, query, currentInvestigationId, processingDelayMs]);
+    let isCancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+
+    const poll = async () => {
+      try {
+        const job = await getJob(activeJobId);
+        if (isCancelled) {
+          return;
+        }
+
+        if (job.status === 'completed') {
+          setState('results');
+          setActiveJobId(undefined);
+
+          if (!currentInvestigationId) {
+            const timestamp = Date.now();
+            const newInvestigation: Investigation = {
+              id: timestamp.toString(),
+              title: query,
+              timestamp: getRelativeTime(timestamp),
+              domain: detectDomain(query),
+              query,
+            };
+            setInvestigations((prev) => [newInvestigation, ...prev]);
+            setCurrentInvestigationId(newInvestigation.id);
+          }
+          return;
+        }
+
+        if (job.status === 'failed') {
+          setState('idle');
+          setActiveJobId(undefined);
+          return;
+        }
+      } catch {
+        // Keep polling when the backend is temporarily unavailable.
+      }
+
+      timeoutId = setTimeout(poll, processingDelayMs);
+    };
+
+    timeoutId = setTimeout(poll, processingDelayMs);
+
+    return () => {
+      isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [state, activeJobId, currentInvestigationId, processingDelayMs, query]);
 
   useEffect(() => {
     const interval = setInterval(() => {
