@@ -19,8 +19,8 @@ function makeToken(expOffsetSeconds: number): string {
   return `header.${encoded}.sig`;
 }
 
-describe('jobs api lifecycle', () => {
-  it('confirms a drafted query, creates job, polls status, and transitions to results', async () => {
+describe('chat job monitoring', () => {
+  it('after confirm, polls job status and transitions to results', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
     const user = userEvent.setup();
@@ -29,7 +29,7 @@ describe('jobs api lifecycle', () => {
     const jobId = '120d6e13-9f74-42bb-9fff-395a7f4f5f00';
     let statusPollCount = 0;
 
-    const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
       const url = String(input);
 
       if (url.endsWith('/v1/conversations')) {
@@ -146,7 +146,7 @@ describe('jobs api lifecycle', () => {
 
     render(<AppShell initialView="app" processingDelayMs={10} />);
 
-    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Pension reform Romania last 7 days');
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Track pension reform sentiment in Romania for the last 7 days');
     await user.keyboard('{Enter}');
     await user.click(await screen.findByRole('button', { name: /confirm/i }));
 
@@ -158,10 +158,5 @@ describe('jobs api lifecycle', () => {
       },
       { timeout: 4000 },
     );
-
-    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(calledUrls.some((url) => url.includes('/v1/conversations'))).toBe(true);
-    expect(calledUrls.some((url) => url.includes('/confirm-job'))).toBe(true);
-    expect(calledUrls.some((url) => url.includes(`/v1/jobs/${jobId}`))).toBe(true);
   });
 });

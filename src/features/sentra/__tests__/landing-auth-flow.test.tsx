@@ -39,6 +39,6 @@ describe('landing/auth flow', () => {
   it('keeps app view for authenticated users', () => {
     setAccessToken(makeToken(3600));
     render(<AppShell initialView="app" />);
-    expect(screen.getByText(/where signals become strategy/i)).toBeInTheDocument();
+    expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
   });
 });

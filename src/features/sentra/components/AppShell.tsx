@@ -1,13 +1,20 @@
 import { useEffect, useState } from 'react';
+
+import {
+  confirmConversationJob,
+  createConversation,
+  postConversationMessage,
+} from '@/features/sentra/api/conversations';
+import { getJob } from '@/features/sentra/api/jobs';
+import { ConversationPanel, type ChatBubble } from '@/features/sentra/components/chat/ConversationPanel';
 import { AuthPage } from '@/features/sentra/components/AuthPage';
 import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
 import { LandingPage } from '@/features/sentra/components/LandingPage';
-import { QueryInput } from '@/features/sentra/components/QueryInput';
 import { RightPanel } from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
-import { createJob, getJob } from '@/features/sentra/api/jobs';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
+import type { ConversationProposalRecord } from '@/features/sentra/types/conversation';
 import { AppState, AppView, Investigation } from '@/features/sentra/types';
 
 interface AppShellProps {
@@ -43,6 +50,22 @@ function detectDomain(query: string): string {
   return 'General';
 }
 
+function assistantBubble(content: string): ChatBubble {
+  return {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    content,
+  };
+}
+
+function userBubble(content: string): ChatBubble {
+  return {
+    id: crypto.randomUUID(),
+    role: 'user',
+    content,
+  };
+}
+
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
   const [currentView, setCurrentView] = useState<AppView>(() =>
@@ -54,6 +77,11 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   const [currentInvestigationId, setCurrentInvestigationId] = useState<string | undefined>();
   const [activeJobId, setActiveJobId] = useState<string | undefined>();
   const [currentJobId, setCurrentJobId] = useState<string | undefined>();
+  const [conversationId, setConversationId] = useState<string | undefined>();
+  const [chatMessages, setChatMessages] = useState<ChatBubble[]>([]);
+  const [pendingProposal, setPendingProposal] = useState<ConversationProposalRecord | null>(null);
+  const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isConfirmingProposal, setIsConfirmingProposal] = useState(false);
 
   useEffect(() => {
     if (currentView === 'app' && !isAuthenticated) {
@@ -75,6 +103,9 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setQuery(sampleQuery);
     setState('results');
     setCurrentJobId(undefined);
+    setConversationId(undefined);
+    setPendingProposal(null);
+    setChatMessages([]);
 
     const timestamp = Date.now();
     const newInvestigation: Investigation = {
@@ -89,19 +120,78 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setCurrentInvestigationId(newInvestigation.id);
   };
 
-  const handleQuery = async (userQuery: string) => {
-    setQuery(userQuery);
+  const handleSendMessage = async (message: string) => {
+    setIsSendingMessage(true);
     setCurrentInvestigationId(undefined);
+    setChatMessages((prev) => [...prev, userBubble(message)]);
+
+    try {
+      let activeConversationId = conversationId;
+      if (!activeConversationId) {
+        const conversation = await createConversation();
+        activeConversationId = conversation.id;
+        setConversationId(activeConversationId);
+      }
+
+      const turn = await postConversationMessage(activeConversationId, message);
+      setConversationId(turn.conversation.id);
+      setPendingProposal(turn.pending_proposal ?? null);
+      setChatMessages((prev) => [
+        ...prev,
+        {
+          id: turn.assistant_message.id,
+          role: 'assistant',
+          content: turn.assistant_message.content,
+        },
+      ]);
+
+      if (turn.pending_proposal) {
+        setQuery(turn.pending_proposal.normalized_query);
+      }
+    } catch {
+      setChatMessages((prev) => [
+        ...prev,
+        assistantBubble('I could not process that message right now. Please try again.'),
+      ]);
+    } finally {
+      setIsSendingMessage(false);
+    }
+  };
+
+  const handleConfirmProposal = async () => {
+    if (!conversationId || !pendingProposal) {
+      return;
+    }
+
+    setIsConfirmingProposal(true);
     setState('running');
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
+    setCurrentInvestigationId(undefined);
+    setQuery(pendingProposal.normalized_query);
 
     try {
-      const created = await createJob(userQuery);
-      setActiveJobId(created.id);
+      const confirmed = await confirmConversationJob(conversationId, {
+        proposalVersion: pendingProposal.version,
+        idempotencyKey: crypto.randomUUID(),
+      });
+      setActiveJobId(confirmed.job_id);
+      setPendingProposal(null);
+      setChatMessages((prev) => [...prev, assistantBubble('Confirmed. Creating your monitoring job now.')]);
     } catch {
       setState('idle');
+      setChatMessages((prev) => [
+        ...prev,
+        assistantBubble('I could not create the job from that confirmation. Please try again.'),
+      ]);
+    } finally {
+      setIsConfirmingProposal(false);
     }
+  };
+
+  const handleEditProposal = () => {
+    setPendingProposal(null);
+    setChatMessages((prev) => [...prev, assistantBubble('Tell me what should change, and I will revise the query.')]);
   };
 
   const handleNewInvestigation = () => {
@@ -110,6 +200,9 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setCurrentInvestigationId(undefined);
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
+    setConversationId(undefined);
+    setPendingProposal(null);
+    setChatMessages([]);
   };
 
   const handleSelectInvestigation = (id: string) => {
@@ -120,6 +213,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setCurrentInvestigationId(id);
     setActiveJobId(undefined);
     setCurrentJobId(investigation.jobId);
+    setPendingProposal(null);
   };
 
   useEffect(() => {
@@ -162,10 +256,11 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
           setState('idle');
           setActiveJobId(undefined);
           setCurrentJobId(undefined);
+          setChatMessages((prev) => [...prev, assistantBubble('The job failed. You can edit and confirm a new query.')]);
           return;
         }
       } catch {
-        // Keep polling when the backend is temporarily unavailable.
+        // Keep polling when backend is temporarily unavailable.
       }
 
       timeoutId = setTimeout(poll, processingDelayMs);
@@ -193,7 +288,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
             ...investigation,
             timestamp: getRelativeTime(timestamp),
           };
-        })
+        }),
       );
     }, 60000);
 
@@ -218,7 +313,16 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       />
 
       <div className="flex-1 overflow-y-auto">
-        {state === 'idle' && <QueryInput onSubmit={handleQuery} />}
+        {state === 'idle' && (
+          <ConversationPanel
+            messages={chatMessages}
+            pendingProposal={pendingProposal}
+            onSend={handleSendMessage}
+            onConfirmProposal={handleConfirmProposal}
+            onEditProposal={handleEditProposal}
+            disabled={isSendingMessage || isConfirmingProposal}
+          />
+        )}
         {state === 'running' && <RunningState />}
         {state === 'results' && <IntelligenceBrief query={query} jobId={currentJobId} />}
       </div>

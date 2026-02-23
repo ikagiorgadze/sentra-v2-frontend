@@ -19,8 +19,8 @@ function makeToken(expOffsetSeconds: number): string {
   return `header.${encoded}.sig`;
 }
 
-describe('jobs api lifecycle', () => {
-  it('confirms a drafted query, creates job, polls status, and transitions to results', async () => {
+describe('chat confirmation flow', () => {
+  it('shows confirm card and only creates job after explicit confirm', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
     const user = userEvent.setup();
@@ -146,22 +146,21 @@ describe('jobs api lifecycle', () => {
 
     render(<AppShell initialView="app" processingDelayMs={10} />);
 
-    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Pension reform Romania last 7 days');
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Track pension reform sentiment in Romania for the last 7 days');
     await user.keyboard('{Enter}');
-    await user.click(await screen.findByRole('button', { name: /confirm/i }));
 
-    expect(screen.getByText(/collecting public discourse/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/confirm query/i)).toBeInTheDocument();
+    });
 
-    await waitFor(
-      () => {
-        expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
-      },
-      { timeout: 4000 },
-    );
+    const beforeConfirm = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(beforeConfirm.some((url) => url.includes('/confirm-job'))).toBe(false);
 
-    const calledUrls = fetchMock.mock.calls.map((call) => String(call[0]));
-    expect(calledUrls.some((url) => url.includes('/v1/conversations'))).toBe(true);
-    expect(calledUrls.some((url) => url.includes('/confirm-job'))).toBe(true);
-    expect(calledUrls.some((url) => url.includes(`/v1/jobs/${jobId}`))).toBe(true);
+    await user.click(screen.getByRole('button', { name: /confirm/i }));
+
+    await waitFor(() => {
+      const called = fetchMock.mock.calls.map((call) => String(call[0]));
+      expect(called.some((url) => url.includes('/confirm-job'))).toBe(true);
+    });
   });
 });
