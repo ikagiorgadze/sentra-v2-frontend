@@ -1,5 +1,8 @@
 import { useState } from 'react';
 
+import { loginWithBackend, signupWithBackend } from '@/features/sentra/api/auth';
+import { setAccessToken } from '@/lib/auth/tokenStorage';
+
 interface AuthPageProps {
   onAuthenticate: () => void;
 }
@@ -8,10 +11,26 @@ export function AuthPage({ onAuthenticate }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    onAuthenticate();
+    setIsSubmitting(true);
+    setErrorMessage(null);
+
+    try {
+      if (!isLogin) {
+        await signupWithBackend(email, password);
+      }
+      const token = await loginWithBackend(email, password);
+      setAccessToken(token.access_token);
+      onAuthenticate();
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : 'Authentication failed');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -43,6 +62,7 @@ export function AuthPage({ onAuthenticate }: AuthPageProps) {
               placeholder="you@organization.com"
               className="w-full rounded-lg border border-border bg-card px-4 py-3 transition-all focus:outline-none focus:ring-1 focus:ring-[#3FD6D0]"
               required
+              disabled={isSubmitting}
             />
           </div>
 
@@ -58,8 +78,11 @@ export function AuthPage({ onAuthenticate }: AuthPageProps) {
               placeholder="••••••••"
               className="w-full rounded-lg border border-border bg-card px-4 py-3 transition-all focus:outline-none focus:ring-1 focus:ring-[#3FD6D0]"
               required
+              disabled={isSubmitting}
             />
           </div>
+
+          {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
 
           {isLogin && (
             <div className="flex items-center justify-between text-sm">
@@ -79,8 +102,9 @@ export function AuthPage({ onAuthenticate }: AuthPageProps) {
           <button
             type="submit"
             className="w-full rounded-lg bg-[#3FD6D0] px-4 py-3 text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90"
+            disabled={isSubmitting}
           >
-            {isLogin ? 'Sign in' : 'Create account'}
+            {isSubmitting ? 'Please wait...' : isLogin ? 'Sign in' : 'Create account'}
           </button>
         </form>
 
