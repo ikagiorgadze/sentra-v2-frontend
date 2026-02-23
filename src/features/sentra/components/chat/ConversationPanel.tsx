@@ -17,6 +17,7 @@ interface ConversationPanelProps {
   onConfirmProposal: () => Promise<void> | void;
   onEditProposal: () => void;
   disabled?: boolean;
+  showAssistantTyping?: boolean;
 }
 
 export function ConversationPanel({
@@ -26,6 +27,7 @@ export function ConversationPanel({
   onConfirmProposal,
   onEditProposal,
   disabled = false,
+  showAssistantTyping = false,
 }: ConversationPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -74,6 +76,14 @@ export function ConversationPanel({
               onEdit={onEditProposal}
               disabled={disabled}
             />
+          )}
+
+          {showAssistantTyping && (
+            <div className="mr-auto max-w-[80%]">
+              <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                Sentra is thinking...
+              </div>
+            </div>
           )}
         </div>
       </div>

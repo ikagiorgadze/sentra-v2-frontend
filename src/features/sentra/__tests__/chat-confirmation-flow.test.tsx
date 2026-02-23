@@ -163,4 +163,123 @@ describe('chat confirmation flow', () => {
       expect(called.some((url) => url.includes('/confirm-job'))).toBe(true);
     });
   });
+
+  it('renders a normal assistant chat response without proposal card for greeting', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const conversationId = '20d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+    let resolveMessageRequest: ((response: Response) => void) | null = null;
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/v1/conversations')) {
+        return new Response(
+          JSON.stringify({
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-23T20:00:00Z',
+            updated_at: '2026-02-23T20:00:00Z',
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/messages`)) {
+        return await new Promise<Response>((resolve) => {
+          resolveMessageRequest = resolve;
+        });
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'hi');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByText(/sentra is thinking/i)).toBeInTheDocument();
+    });
+
+    resolveMessageRequest?.(
+      new Response(
+        JSON.stringify({
+          conversation: {
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-23T20:00:00Z',
+            updated_at: '2026-02-23T20:00:01Z',
+          },
+          assistant_message: {
+            id: '3b15995c-fcbf-4d84-966d-eecf4e5393ac',
+            conversation_id: conversationId,
+            role: 'assistant',
+            content: 'Hi, I am Sentra. What topic should we monitor?',
+            inserted_at: '2026-02-23T20:00:01Z',
+            updated_at: '2026-02-23T20:00:01Z',
+          },
+          pending_proposal: null,
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText(/what topic should we monitor/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
+  });
+
+  it('shows backend error detail when message request fails', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const conversationId = '20d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/v1/conversations')) {
+        return new Response(
+          JSON.stringify({
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-23T20:00:00Z',
+            updated_at: '2026-02-23T20:00:00Z',
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/messages`)) {
+        return new Response(JSON.stringify({ detail: 'provider timeout' }), {
+          status: 500,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'hello');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByText('provider timeout')).toBeInTheDocument();
+    });
+  });
 });

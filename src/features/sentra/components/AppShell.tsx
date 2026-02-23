@@ -66,6 +66,13 @@ function userBubble(content: string): ChatBubble {
   };
 }
 
+function resolveErrorMessage(error: unknown, fallback: string): string {
+  if (error instanceof Error && error.message.trim()) {
+    return error.message.trim();
+  }
+  return fallback;
+}
+
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
   const [currentView, setCurrentView] = useState<AppView>(() =>
@@ -148,10 +155,10 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       if (turn.pending_proposal) {
         setQuery(turn.pending_proposal.normalized_query);
       }
-    } catch {
+    } catch (error) {
       setChatMessages((prev) => [
         ...prev,
-        assistantBubble('I could not process that message right now. Please try again.'),
+        assistantBubble(resolveErrorMessage(error, 'I could not process that message right now. Please try again.')),
       ]);
     } finally {
       setIsSendingMessage(false);
@@ -178,11 +185,11 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       setActiveJobId(confirmed.job_id);
       setPendingProposal(null);
       setChatMessages((prev) => [...prev, assistantBubble('Confirmed. Creating your monitoring job now.')]);
-    } catch {
+    } catch (error) {
       setState('idle');
       setChatMessages((prev) => [
         ...prev,
-        assistantBubble('I could not create the job from that confirmation. Please try again.'),
+        assistantBubble(resolveErrorMessage(error, 'I could not create the job from that confirmation. Please try again.')),
       ]);
     } finally {
       setIsConfirmingProposal(false);
@@ -321,6 +328,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
             onConfirmProposal={handleConfirmProposal}
             onEditProposal={handleEditProposal}
             disabled={isSendingMessage || isConfirmingProposal}
+            showAssistantTyping={isSendingMessage}
           />
         )}
         {state === 'running' && <RunningState />}

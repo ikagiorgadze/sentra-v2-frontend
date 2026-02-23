@@ -101,4 +101,17 @@ describe('conversations api', () => {
     expect(confirmed.job_id).toBe('120d6e13-9f74-42bb-9fff-395a7f4f5f00');
     expect(confirmed.status).toBe('queued');
   });
+
+  it('throws backend detail when posting a message fails', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'provider timeout' }), {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(postConversationMessage('20d6f6d2-8105-4f20-8151-2bdadf7a9a31', 'hello')).rejects.toThrow(
+      'provider timeout',
+    );
+  });
 });

@@ -31,7 +31,7 @@ export interface ConversationProposalRecord {
   conversation_id: string;
   version: number;
   normalized_query: string;
-  filters_json?: Record<string, string> | null;
+  filters_json?: Record<string, unknown> | null;
   status: 'pending' | 'confirmed' | 'superseded';
   inserted_at: string;
   updated_at: string;
