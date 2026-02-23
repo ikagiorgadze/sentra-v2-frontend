@@ -39,13 +39,14 @@ const Onboarding = () => {
 
   const validateStep = (stepNum: number): boolean => {
     switch(stepNum) {
-      case 1:
+      case 1: {
         if (!config.leader.name.trim() || !config.leader.party.trim() || !config.leader.region.trim()) {
           toast.error("Principal name, party, and region are required");
           return false;
         }
         return true;
-      case 2:
+      }
+      case 2: {
         const invalidOpponents = config.opponents.filter(
           o => o.name.trim() === '' || o.party.trim() === '' || o.region.trim() === ''
         );
@@ -55,20 +56,23 @@ const Onboarding = () => {
           return false;
         }
         return true;
-      case 3:
+      }
+      case 3: {
         const hasChannel = config.channels.x.enabled || config.channels.facebook.enabled || config.channels.news.enabled;
         if (!hasChannel) {
           toast.error("Please enable at least one data source");
           return false;
         }
         return true;
-      case 4:
+      }
+      case 4: {
         const enabledSections = Object.values(config.pdfContent.sections).filter(Boolean).length;
         if (enabledSections === 0) {
           toast.error("Please select at least one PDF section");
           return false;
         }
         return true;
+      }
       case 5:
         if (!config.delivery.timeOfDay || !config.delivery.timezone.trim() || config.delivery.recipients.length === 0) {
           toast.error("Time, timezone, and recipients are required");

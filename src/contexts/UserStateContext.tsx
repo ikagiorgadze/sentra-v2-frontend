@@ -17,89 +17,136 @@ interface UserStateContextType {
 
 const UserStateContext = createContext<UserStateContextType | undefined>(undefined);
 
-const migrateOldConfig = (oldConfig: any): OnboardingConfig | null => {
-  if (!oldConfig) return null;
-  
-  // If already new format with OpponentProfile[], return as-is
-  if (oldConfig.leader && oldConfig.channels && oldConfig.opponents && oldConfig.opponents[0]?.id) {
-    return oldConfig;
+type LegacyOpponent = string | { name?: string } | OpponentProfile;
+
+interface LegacyConfig {
+  leader?: OnboardingConfig['leader'];
+  channels?: OnboardingConfig['channels'];
+  opponents?: LegacyOpponent[];
+  leaders?: string;
+  party?: string;
+  region?: string;
+  opposition?: string;
+  topics?: string;
+  dataSources?: string[];
+  language?: string;
+  metrics?: string[];
+  frequency?: string;
+  timeOfDay?: string;
+  recipients?: string;
+}
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === 'object' && value !== null;
+
+const parseCsv = (value: string | undefined): string[] =>
+  value ? value.split(',').map((item) => item.trim()).filter(Boolean) : [];
+
+const asStringArray = (value: unknown): string[] =>
+  Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
+
+const migrateOpponentList = (opponents: LegacyOpponent[] | undefined): OpponentProfile[] =>
+  (opponents ?? [])
+    .map((opponent) => {
+      if (typeof opponent === 'string') {
+        const name = opponent.trim();
+        if (!name) return null;
+        return { id: crypto.randomUUID(), name, role: '', party: '', region: '' };
+      }
+
+      const name = opponent.name?.trim() ?? '';
+      if (!name) return null;
+
+      return {
+        id: 'id' in opponent && typeof opponent.id === 'string' && opponent.id ? opponent.id : crypto.randomUUID(),
+        name,
+        role: 'role' in opponent && typeof opponent.role === 'string' ? opponent.role : '',
+        party: 'party' in opponent && typeof opponent.party === 'string' ? opponent.party : '',
+        region: 'region' in opponent && typeof opponent.region === 'string' ? opponent.region : '',
+      };
+    })
+    .filter((opponent): opponent is OpponentProfile => opponent !== null);
+
+const migrateOldConfig = (oldConfig: unknown): OnboardingConfig | null => {
+  if (!isRecord(oldConfig)) return null;
+
+  const config = oldConfig as LegacyConfig;
+
+  if (
+    config.leader &&
+    config.channels &&
+    Array.isArray(config.opponents) &&
+    config.opponents.some((opponent) => typeof opponent === 'object' && opponent !== null && 'id' in opponent)
+  ) {
+    return oldConfig as OnboardingConfig;
   }
 
-  // If already has leader and channels but old string[] opponents
-  if (oldConfig.leader && oldConfig.channels) {
-    const migratedOpponents: OpponentProfile[] = (oldConfig.opponents || [])
-      .filter((name: string | { name: string }) => typeof name === 'string' ? name.trim() : name.name?.trim())
-      .map((name: string | { name: string }) => ({
-        id: crypto.randomUUID(),
-        name: typeof name === 'string' ? name.trim() : name.name || "",
-        role: "",
-        party: "",
-        region: ""
-      }));
-    
+  if (config.leader && config.channels) {
     return {
-      ...oldConfig,
-      opponents: migratedOpponents
+      ...(oldConfig as OnboardingConfig),
+      opponents: migrateOpponentList(config.opponents),
     };
   }
 
-  // Migrate very old format to new
+  const dataSources = asStringArray(config.dataSources);
+  const metrics = asStringArray(config.metrics);
+
   return {
     leader: {
-      name: oldConfig.leaders || "",
-      role: "",
-      party: oldConfig.party || "",
-      region: oldConfig.region || "",
+      name: config.leaders ?? '',
+      role: '',
+      party: config.party ?? '',
+      region: config.region ?? '',
     },
-    opponents: oldConfig.opposition ? oldConfig.opposition.split(',').map((s: string) => ({
+    opponents: parseCsv(config.opposition).map((name) => ({
       id: crypto.randomUUID(),
-      name: s.trim(),
-      role: "",
-      party: "",
-      region: ""
-    })) : [],
-    topics: oldConfig.topics ? oldConfig.topics.split(',').map((s: string) => s.trim()) : [],
+      name,
+      role: '',
+      party: '',
+      region: '',
+    })),
+    topics: parseCsv(config.topics),
     channels: {
       x: {
-        enabled: oldConfig.dataSources?.includes('X (Twitter)') || false,
-        includeTerms: oldConfig.leaders || "",
-        excludeTerms: "",
-        language: oldConfig.language || "en",
+        enabled: dataSources.includes('X (Twitter)'),
+        includeTerms: config.leaders ?? '',
+        excludeTerms: '',
+        language: config.language ?? 'en',
       },
       facebook: {
-        enabled: oldConfig.dataSources?.includes('Facebook') || false,
-        includeTerms: oldConfig.leaders || "",
-        excludeTerms: "",
-        language: oldConfig.language || "en",
+        enabled: dataSources.includes('Facebook'),
+        includeTerms: config.leaders ?? '',
+        excludeTerms: '',
+        language: config.language ?? 'en',
       },
       news: {
-        enabled: oldConfig.dataSources?.includes('News Sites') || false,
-        includeTerms: oldConfig.leaders || "",
-        excludeTerms: "",
-        language: oldConfig.language || "en",
+        enabled: dataSources.includes('News Sites'),
+        includeTerms: config.leaders ?? '',
+        excludeTerms: '',
+        language: config.language ?? 'en',
       },
     },
     pdfContent: {
       sections: {
         totalMentions: true,
-        netSentiment: oldConfig.metrics?.includes('Net Sentiment') || true,
-        botShare: oldConfig.metrics?.includes('Bot Activity Detection') || true,
+        netSentiment: metrics.includes('Net Sentiment') || true,
+        botShare: metrics.includes('Bot Activity Detection') || true,
         engagementRate: true,
         dominantTopic: true,
         trendDashboard: true,
         topKeywords: true,
         topInfluencers: true,
-        oppositionComparison: oldConfig.metrics?.includes('Opposition Comparison') || true,
+        oppositionComparison: metrics.includes('Opposition Comparison') || true,
       },
-      executiveSummaryMetrics: ["totalMentions", "netSentiment", "botShare", "engagementRate"],
+      executiveSummaryMetrics: ['totalMentions', 'netSentiment', 'botShare', 'engagementRate'],
       aiSummaryEnabled: true,
     },
     delivery: {
-      frequency: oldConfig.frequency || "weekly",
-      dayOfWeek: "monday",
-      timeOfDay: oldConfig.timeOfDay || "08:00",
-      timezone: "UTC",
-      recipients: oldConfig.recipients ? oldConfig.recipients.split(',').map((s: string) => s.trim()) : [],
+      frequency: config.frequency || 'weekly',
+      dayOfWeek: 'monday',
+      timeOfDay: config.timeOfDay || '08:00',
+      timezone: 'UTC',
+      recipients: parseCsv(config.recipients),
       attachPdf: true,
       dashboardLink: true,
     },
