@@ -43,6 +43,11 @@ docker compose up -d
 uv run alembic upgrade head
 uv run uvicorn sentra_api.main:app --app-dir src --reload
 ```
+Backend `.env` recommendation for modern chat behavior:
+- `AGENT_LLM_ENABLED=true`
+- `GEMINI_API_KEY=<your-key>`
+- `AGENT_MAX_TOOL_CALLS_PER_TURN=3`
+
 2. Start frontend (from this repo):
 ```bash
 cd /home/ika/repos/sentra-v2/sentra-frontend
@@ -77,6 +82,14 @@ The frontend stores backend access tokens in local storage and sends `Authorizat
 6. Frontend switches to running state, polls `GET /v1/jobs/{jobId}`, then renders results.
 
 Important: the app is intentionally configured to require explicit confirmation for every job creation.
+
+## Chat Smoke Scenario
+Use this quick manual scenario after both apps are running:
+1. Send `hi` and confirm the assistant responds naturally.
+2. Send partial context (for example: `Georgia and the last month`) and confirm one focused follow-up question appears.
+3. Send complete intent (for example: `Track pension reform sentiment in Georgia over the last month`) and confirm the **Confirm Query** card appears.
+4. Click `Confirm` and verify the app transitions to running state and polls `/v1/jobs/{jobId}`.
+5. Verify result view loads overview and sentiment widgets once job status is `completed`.
 
 ## Test and build
 - Run tests:
