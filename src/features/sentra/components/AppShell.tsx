@@ -53,6 +53,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
   const [currentInvestigationId, setCurrentInvestigationId] = useState<string | undefined>();
   const [activeJobId, setActiveJobId] = useState<string | undefined>();
+  const [currentJobId, setCurrentJobId] = useState<string | undefined>();
 
   useEffect(() => {
     if (currentView === 'app' && !isAuthenticated) {
@@ -73,6 +74,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     const sampleQuery = 'Sentiment about pension reform in Romania last 7 days';
     setQuery(sampleQuery);
     setState('results');
+    setCurrentJobId(undefined);
 
     const timestamp = Date.now();
     const newInvestigation: Investigation = {
@@ -81,6 +83,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       timestamp: 'Just now',
       domain: 'Politics',
       query: sampleQuery,
+      jobId: undefined,
     };
     setInvestigations([newInvestigation]);
     setCurrentInvestigationId(newInvestigation.id);
@@ -91,6 +94,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setCurrentInvestigationId(undefined);
     setState('running');
     setActiveJobId(undefined);
+    setCurrentJobId(undefined);
 
     try {
       const created = await createJob(userQuery);
@@ -105,6 +109,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setQuery('');
     setCurrentInvestigationId(undefined);
     setActiveJobId(undefined);
+    setCurrentJobId(undefined);
   };
 
   const handleSelectInvestigation = (id: string) => {
@@ -114,6 +119,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setState('results');
     setCurrentInvestigationId(id);
     setActiveJobId(undefined);
+    setCurrentJobId(investigation.jobId);
   };
 
   useEffect(() => {
@@ -133,6 +139,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
 
         if (job.status === 'completed') {
           setState('results');
+          setCurrentJobId(activeJobId);
           setActiveJobId(undefined);
 
           if (!currentInvestigationId) {
@@ -143,6 +150,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
               timestamp: getRelativeTime(timestamp),
               domain: detectDomain(query),
               query,
+              jobId: activeJobId,
             };
             setInvestigations((prev) => [newInvestigation, ...prev]);
             setCurrentInvestigationId(newInvestigation.id);
@@ -153,6 +161,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
         if (job.status === 'failed') {
           setState('idle');
           setActiveJobId(undefined);
+          setCurrentJobId(undefined);
           return;
         }
       } catch {
@@ -211,7 +220,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       <div className="flex-1 overflow-y-auto">
         {state === 'idle' && <QueryInput onSubmit={handleQuery} />}
         {state === 'running' && <RunningState />}
-        {state === 'results' && <IntelligenceBrief query={query} />}
+        {state === 'results' && <IntelligenceBrief query={query} jobId={currentJobId} />}
       </div>
 
       <RightPanel />

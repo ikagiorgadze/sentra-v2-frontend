@@ -7,6 +7,7 @@ export interface Investigation {
   timestamp: string;
   domain: string;
   query: string;
+  jobId?: string;
 }
 
 export interface SentraState {

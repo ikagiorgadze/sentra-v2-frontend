@@ -1,5 +1,5 @@
 import { AlertTriangle, ChevronDown, ChevronUp, TrendingDown, TrendingUp } from 'lucide-react';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
   BarChart,
@@ -15,28 +15,129 @@ import {
   YAxis,
 } from 'recharts';
 
+import {
+  getOverview,
+  getSentimentOverview,
+  getSentimentTimeseries,
+  SentimentTimeseriesPoint,
+} from '@/features/sentra/api/analytics';
+
 interface IntelligenceBriefProps {
   query: string;
+  jobId?: string;
 }
 
-export function IntelligenceBrief({ query }: IntelligenceBriefProps) {
+const DEFAULT_SUMMARY =
+  'Public sentiment shows strong negative shift regarding pension reform in Romania over the past 7 days. Primary concerns center on economic impact and implementation credibility.';
+
+const DEFAULT_SENTIMENT_TREND = [
+  { date: 'Feb 4', positive: 42, negative: 35, neutral: 23 },
+  { date: 'Feb 5', positive: 38, negative: 40, neutral: 22 },
+  { date: 'Feb 6', positive: 35, negative: 48, neutral: 17 },
+  { date: 'Feb 7', positive: 32, negative: 52, neutral: 16 },
+  { date: 'Feb 8', positive: 28, negative: 58, neutral: 14 },
+  { date: 'Feb 9', positive: 25, negative: 62, neutral: 13 },
+  { date: 'Feb 10', positive: 22, negative: 66, neutral: 12 },
+];
+
+const DEFAULT_SENTIMENT_DISTRIBUTION = [
+  { name: 'Negative', value: 66, color: '#FFC043' },
+  { name: 'Positive', value: 22, color: '#3FD6D0' },
+  { name: 'Neutral', value: 12, color: '#6B7280' },
+];
+
+function toDistribution(positive: number, neutral: number, negative: number) {
+  const total = positive + neutral + negative;
+  if (total <= 0) {
+    return DEFAULT_SENTIMENT_DISTRIBUTION;
+  }
+
+  return [
+    { name: 'Negative', value: Math.round((negative / total) * 100), color: '#FFC043' },
+    { name: 'Positive', value: Math.round((positive / total) * 100), color: '#3FD6D0' },
+    { name: 'Neutral', value: Math.round((neutral / total) * 100), color: '#6B7280' },
+  ];
+}
+
+function normalizeTrend(points: SentimentTimeseriesPoint[]) {
+  return points.map((point) => ({
+    date: point.date,
+    positive: point.positive,
+    negative: point.negative,
+    neutral: point.neutral,
+  }));
+}
+
+export function IntelligenceBrief({ query, jobId }: IntelligenceBriefProps) {
   const [expandedEvidence, setExpandedEvidence] = useState(false);
+  const [backendSummary, setBackendSummary] = useState<string | null>(null);
+  const [backendTrend, setBackendTrend] = useState<SentimentTimeseriesPoint[] | null>(null);
+  const [backendDistribution, setBackendDistribution] = useState<{
+    positive: number;
+    neutral: number;
+    negative: number;
+  } | null>(null);
 
-  const sentimentTrend = [
-    { date: 'Feb 4', positive: 42, negative: 35, neutral: 23 },
-    { date: 'Feb 5', positive: 38, negative: 40, neutral: 22 },
-    { date: 'Feb 6', positive: 35, negative: 48, neutral: 17 },
-    { date: 'Feb 7', positive: 32, negative: 52, neutral: 16 },
-    { date: 'Feb 8', positive: 28, negative: 58, neutral: 14 },
-    { date: 'Feb 9', positive: 25, negative: 62, neutral: 13 },
-    { date: 'Feb 10', positive: 22, negative: 66, neutral: 12 },
-  ];
+  useEffect(() => {
+    if (!jobId) {
+      setBackendSummary(null);
+      setBackendTrend(null);
+      setBackendDistribution(null);
+      return;
+    }
 
-  const sentimentDistribution = [
-    { name: 'Negative', value: 66, color: '#FFC043' },
-    { name: 'Positive', value: 22, color: '#3FD6D0' },
-    { name: 'Neutral', value: 12, color: '#6B7280' },
-  ];
+    let isCancelled = false;
+
+    const load = async () => {
+      try {
+        const [overview, sentimentOverview, sentimentTimeseries] = await Promise.all([
+          getOverview(jobId),
+          getSentimentOverview(jobId),
+          getSentimentTimeseries(jobId),
+        ]);
+
+        if (isCancelled) {
+          return;
+        }
+
+        setBackendSummary(overview.summary);
+        setBackendDistribution({
+          positive: sentimentOverview.positive,
+          neutral: sentimentOverview.neutral,
+          negative: sentimentOverview.negative,
+        });
+        setBackendTrend(sentimentTimeseries.items);
+      } catch {
+        if (!isCancelled) {
+          setBackendSummary(null);
+          setBackendTrend(null);
+          setBackendDistribution(null);
+        }
+      }
+    };
+
+    void load();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [jobId]);
+
+  const sentimentTrend = useMemo(
+    () => (backendTrend && backendTrend.length > 0 ? normalizeTrend(backendTrend) : DEFAULT_SENTIMENT_TREND),
+    [backendTrend],
+  );
+
+  const sentimentDistribution = useMemo(() => {
+    if (!backendDistribution) {
+      return DEFAULT_SENTIMENT_DISTRIBUTION;
+    }
+    return toDistribution(
+      backendDistribution.positive,
+      backendDistribution.neutral,
+      backendDistribution.negative,
+    );
+  }, [backendDistribution]);
 
   const narrativeClusters = [
     {
@@ -129,10 +230,7 @@ export function IntelligenceBrief({ query }: IntelligenceBriefProps) {
 
         <div className="space-y-4 rounded-lg border border-border bg-card p-6">
           <div className="text-xs uppercase tracking-wider text-muted-foreground">Executive Summary</div>
-          <p className="leading-relaxed text-foreground">
-            Public sentiment shows strong negative shift regarding pension reform in Romania over the past 7 days.
-            Primary concerns center on economic impact and implementation credibility.
-          </p>
+          <p className="leading-relaxed text-foreground">{backendSummary ?? DEFAULT_SUMMARY}</p>
           <div className="flex items-baseline gap-3 pt-4">
             <div className="font-mono text-5xl text-[#FFC043]">-44</div>
             <div className="space-y-0.5">
