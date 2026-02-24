@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from '@/features/sentra/components/AppShell';
 import { clearAccessToken, setAccessToken } from '@/lib/auth/tokenStorage';
@@ -20,7 +20,15 @@ function makeToken(expOffsetSeconds: number): string {
 }
 
 describe('investigation history', () => {
-  it('adds completed query to sidebar and reopens it when selected', async () => {
+  beforeEach(() => {
+    window.__SENTRA_STREAMING_ENABLED__ = false;
+  });
+
+  afterEach(() => {
+    window.__SENTRA_STREAMING_ENABLED__ = undefined;
+  });
+
+  it('reopens a recent chat from sidebar and restores results', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
     const user = userEvent.setup();
@@ -31,64 +39,62 @@ describe('investigation history', () => {
 
     vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
       const url = String(input);
+      const method = input instanceof Request ? input.method.toUpperCase() : 'GET';
 
-      if (url.endsWith('/v1/conversations')) {
+      if (url.endsWith('/v1/conversations') && method === 'GET') {
         return new Response(
           JSON.stringify({
-            id: conversationId,
-            user_id: '11111111-1111-1111-1111-111111111111',
-            title: null,
-            state: 'collecting_intent',
-            active_proposal_version: 0,
-            inserted_at: '2026-02-23T20:00:00Z',
-            updated_at: '2026-02-23T20:00:00Z',
-          }),
-          { status: 201, headers: { 'Content-Type': 'application/json' } },
-        );
-      }
-
-      if (url.includes(`/v1/conversations/${conversationId}/messages`)) {
-        return new Response(
-          JSON.stringify({
-            conversation: {
-              id: conversationId,
-              user_id: '11111111-1111-1111-1111-111111111111',
-              title: null,
-              state: 'awaiting_confirmation',
-              active_proposal_version: 1,
-              inserted_at: '2026-02-23T20:00:00Z',
-              updated_at: '2026-02-23T20:00:00Z',
-            },
-            assistant_message: {
-              id: '3b15995c-fcbf-4d84-966d-eecf4e5393ac',
-              conversation_id: conversationId,
-              role: 'assistant',
-              content: 'Please confirm this query before I create the job.',
-              inserted_at: '2026-02-23T20:00:01Z',
-              updated_at: '2026-02-23T20:00:01Z',
-            },
-            pending_proposal: {
-              id: 'b8f80a2a-5662-4268-a4b7-9886f7262dcf',
-              conversation_id: conversationId,
-              version: 1,
-              normalized_query: 'Pension reform Romania',
-              filters_json: { country: 'Romania', time_range: '7d' },
-              status: 'pending',
-              inserted_at: '2026-02-23T20:00:01Z',
-              updated_at: '2026-02-23T20:00:01Z',
-            },
+            items: [
+              {
+                id: conversationId,
+                user_id: '11111111-1111-1111-1111-111111111111',
+                title: 'Pension reform Romania',
+                state: 'monitoring',
+                active_proposal_version: 1,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:05Z',
+              },
+            ],
+            next_cursor: null,
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
       }
 
-      if (url.includes(`/v1/conversations/${conversationId}/confirm-job`)) {
+      if (url.includes(`/v1/conversations/${conversationId}/snapshot`)) {
         return new Response(
           JSON.stringify({
-            conversation_id: conversationId,
-            proposal_id: 'b8f80a2a-5662-4268-a4b7-9886f7262dcf',
-            job_id: jobId,
-            status: 'queued',
+            conversation: {
+              id: conversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: 'Pension reform Romania',
+              state: 'monitoring',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:05Z',
+            },
+            messages: [
+              {
+                id: 'c80da9d4-bad6-4637-9ee6-ab6fef53e8ab',
+                conversation_id: conversationId,
+                role: 'user',
+                content: 'Pension reform Romania',
+                tool_trace_ref: null,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:00Z',
+              },
+              {
+                id: '6ccdbecf-d86f-4dc5-aeb6-fd35045fdb18',
+                conversation_id: conversationId,
+                role: 'assistant',
+                content: 'Confirmed. Creating your monitoring job now.',
+                tool_trace_ref: null,
+                inserted_at: '2026-02-23T20:00:02Z',
+                updated_at: '2026-02-23T20:00:02Z',
+              },
+            ],
+            pending_proposal: null,
+            active_job_id: jobId,
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
@@ -145,10 +151,7 @@ describe('investigation history', () => {
     });
 
     render(<AppShell initialView="app" processingDelayMs={1} />);
-
-    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Pension reform Romania');
-    await user.keyboard('{Enter}');
-    await user.click(await screen.findByRole('button', { name: /confirm/i }));
+    await user.click(await screen.findByRole('button', { name: /pension reform romania/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
