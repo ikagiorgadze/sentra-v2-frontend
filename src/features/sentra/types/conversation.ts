@@ -43,6 +43,13 @@ export interface ConversationTurnRecord {
   pending_proposal?: ConversationProposalRecord | null;
 }
 
+export interface ConversationSnapshotRecord {
+  conversation: ConversationRecord;
+  messages: ConversationMessageRecord[];
+  pending_proposal?: ConversationProposalRecord | null;
+  active_job_id?: string | null;
+}
+
 export interface ConfirmConversationJobRecord {
   conversation_id: string;
   proposal_id: string;
@@ -53,4 +60,11 @@ export interface ConfirmConversationJobRecord {
 export interface ConfirmConversationJobInput {
   proposalVersion: number;
   idempotencyKey: string;
+}
+
+export type ConversationStreamEventType = 'turn_start' | 'token' | 'proposal' | 'turn_end' | 'error';
+
+export interface ConversationStreamEvent {
+  event: ConversationStreamEventType;
+  payload: Record<string, unknown>;
 }

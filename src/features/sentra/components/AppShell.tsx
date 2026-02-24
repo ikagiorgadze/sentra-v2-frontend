@@ -1,10 +1,13 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   confirmConversationJob,
   createConversation,
+  getConversationSnapshot,
+  listConversations,
   postConversationMessage,
 } from '@/features/sentra/api/conversations';
+import { streamConversationMessage } from '@/features/sentra/api/conversationStream';
 import { getJob } from '@/features/sentra/api/jobs';
 import { ConversationPanel, type ChatBubble } from '@/features/sentra/components/chat/ConversationPanel';
 import { AuthPage } from '@/features/sentra/components/AuthPage';
@@ -14,8 +17,8 @@ import { RightPanel } from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
-import type { ConversationProposalRecord } from '@/features/sentra/types/conversation';
-import { AppState, AppView, Investigation } from '@/features/sentra/types';
+import type { ConversationMessageRecord, ConversationProposalRecord } from '@/features/sentra/types/conversation';
+import { AppState, AppView, RecentChat } from '@/features/sentra/types';
 
 interface AppShellProps {
   initialView?: AppView;
@@ -33,21 +36,6 @@ function getRelativeTime(timestamp: number) {
   if (minutes < 60) return `${minutes} min ago`;
   if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
   return `${days} day${days > 1 ? 's' : ''} ago`;
-}
-
-function detectDomain(query: string): string {
-  const lowerQuery = query.toLowerCase();
-  if (lowerQuery.includes('bank') || lowerQuery.includes('financial')) return 'Banking';
-  if (lowerQuery.includes('brand') || lowerQuery.includes('outage') || lowerQuery.includes('company')) return 'Brand';
-  if (
-    lowerQuery.includes('election') ||
-    lowerQuery.includes('candidate') ||
-    lowerQuery.includes('reform') ||
-    lowerQuery.includes('policy')
-  ) {
-    return 'Politics';
-  }
-  return 'General';
 }
 
 function assistantBubble(content: string): ChatBubble {
@@ -84,6 +72,43 @@ function isAuthPath(pathname: string): boolean {
   return pathname === '/login' || pathname === '/register' || pathname === '/registration-notice';
 }
 
+function conversationStateLabel(state: string): string {
+  return state.replaceAll('_', ' ');
+}
+
+function deriveConversationTitle(title: string | null, fallback: string): string {
+  const normalized = title?.trim();
+  if (normalized) {
+    return normalized;
+  }
+  return fallback;
+}
+
+function mapConversationMessageToBubble(message: ConversationMessageRecord): ChatBubble {
+  return {
+    id: message.id,
+    role: message.role === 'user' ? 'user' : 'assistant',
+    content: message.content,
+  };
+}
+
+declare global {
+  interface Window {
+    __SENTRA_STREAMING_ENABLED__?: boolean;
+  }
+}
+
+function isStreamingEnabled(): boolean {
+  if (typeof window !== 'undefined' && typeof window.__SENTRA_STREAMING_ENABLED__ === 'boolean') {
+    return window.__SENTRA_STREAMING_ENABLED__;
+  }
+  const flag = String(import.meta.env.VITE_CHAT_STREAMING_ENABLED ?? '').trim().toLowerCase();
+  if (flag === 'false' || flag === '0' || flag === 'off') {
+    return false;
+  }
+  return true;
+}
+
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
   const [currentView, setCurrentView] = useState<AppView>(() => {
@@ -97,15 +122,17 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   });
   const [state, setState] = useState<AppState>('idle');
   const [query, setQuery] = useState('');
-  const [investigations, setInvestigations] = useState<Investigation[]>([]);
-  const [currentInvestigationId, setCurrentInvestigationId] = useState<string | undefined>();
+  const [recentChats, setRecentChats] = useState<RecentChat[]>([]);
+  const [currentChatId, setCurrentChatId] = useState<string | undefined>();
   const [activeJobId, setActiveJobId] = useState<string | undefined>();
   const [currentJobId, setCurrentJobId] = useState<string | undefined>();
   const [conversationId, setConversationId] = useState<string | undefined>();
   const [chatMessages, setChatMessages] = useState<ChatBubble[]>([]);
   const [pendingProposal, setPendingProposal] = useState<ConversationProposalRecord | null>(null);
   const [isSendingMessage, setIsSendingMessage] = useState(false);
+  const [isAwaitingFirstToken, setIsAwaitingFirstToken] = useState(false);
   const [isConfirmingProposal, setIsConfirmingProposal] = useState(false);
+  const [recentChatsError, setRecentChatsError] = useState<string | null>(null);
 
   useEffect(() => {
     if (currentView === 'app' && !isAuthenticated) {
@@ -127,6 +154,34 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     }
   }, [currentView]);
 
+  const refreshRecentChats = useCallback(async () => {
+    try {
+      const items = await listConversations();
+      setRecentChatsError(null);
+      setRecentChats(
+        items.map((item) => {
+          const updatedAtMillis = Date.parse(item.updated_at);
+          return {
+            id: item.id,
+            title: deriveConversationTitle(item.title, `Chat ${item.inserted_at.slice(0, 10)}`),
+            timestamp: Number.isNaN(updatedAtMillis) ? 'Just now' : getRelativeTime(updatedAtMillis),
+            state: conversationStateLabel(item.state),
+            updatedAt: item.updated_at,
+          };
+        }),
+      );
+    } catch (error) {
+      setRecentChatsError(resolveErrorMessage(error, 'Could not load recent chats.'));
+    }
+  }, []);
+
+  useEffect(() => {
+    if (currentView !== 'app' || !isAuthenticated) {
+      return;
+    }
+    void refreshRecentChats();
+  }, [currentView, isAuthenticated, refreshRecentChats]);
+
   const handleGetStarted = () => {
     syncPath('/login');
     setCurrentView('auth');
@@ -147,35 +202,103 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setConversationId(undefined);
     setPendingProposal(null);
     setChatMessages([]);
-
-    const timestamp = Date.now();
-    const newInvestigation: Investigation = {
-      id: timestamp.toString(),
-      title: 'Pension reform sentiment Romania',
-      timestamp: 'Just now',
-      domain: 'Politics',
-      query: sampleQuery,
-      jobId: undefined,
-    };
-    setInvestigations([newInvestigation]);
-    setCurrentInvestigationId(newInvestigation.id);
+    setCurrentChatId(undefined);
   };
 
   const handleSendMessage = async (message: string) => {
     setIsSendingMessage(true);
-    setCurrentInvestigationId(undefined);
+    setIsAwaitingFirstToken(false);
     setChatMessages((prev) => [...prev, userBubble(message)]);
 
     try {
       let activeConversationId = conversationId;
       if (!activeConversationId) {
-        const conversation = await createConversation();
+        const conversation = await createConversation(message.slice(0, 120));
         activeConversationId = conversation.id;
         setConversationId(activeConversationId);
+        setCurrentChatId(activeConversationId);
+      } else {
+        setCurrentChatId(activeConversationId);
+      }
+
+      if (isStreamingEnabled()) {
+        const draftBubbleId = crypto.randomUUID();
+        setChatMessages((prev) => [...prev, { id: draftBubbleId, role: 'assistant', content: '' }]);
+        setIsAwaitingFirstToken(true);
+
+        try {
+          await streamConversationMessage(activeConversationId, message, {
+            onEvent: (event) => {
+              if (event.event === 'turn_start') {
+                return;
+              }
+
+              if (event.event === 'token') {
+                const delta = String(event.payload.delta ?? '');
+                if (!delta) {
+                  return;
+                }
+                setIsAwaitingFirstToken(false);
+                setChatMessages((prev) =>
+                  prev.map((item) => (item.id === draftBubbleId ? { ...item, content: `${item.content}${delta}` } : item)),
+                );
+                return;
+              }
+
+              if (event.event === 'proposal') {
+                const pending = event.payload.pending_proposal as ConversationProposalRecord | undefined;
+                if (pending) {
+                  setPendingProposal(pending);
+                  setQuery(pending.normalized_query);
+                }
+                return;
+              }
+
+              if (event.event === 'turn_end') {
+                setIsAwaitingFirstToken(false);
+                const payloadConversation = event.payload.conversation as { id?: string } | undefined;
+                if (payloadConversation?.id) {
+                  setConversationId(payloadConversation.id);
+                  setCurrentChatId(payloadConversation.id);
+                }
+                const finalAssistant = event.payload.assistant_message as { id?: string; content?: string } | undefined;
+                if (finalAssistant?.id) {
+                  setChatMessages((prev) =>
+                    prev.map((item) =>
+                      item.id === draftBubbleId
+                        ? { id: finalAssistant.id ?? draftBubbleId, role: 'assistant', content: finalAssistant.content ?? item.content }
+                        : item,
+                    ),
+                  );
+                }
+                const pending = event.payload.pending_proposal as ConversationProposalRecord | null | undefined;
+                if (pending) {
+                  setPendingProposal(pending);
+                  setQuery(pending.normalized_query);
+                }
+                return;
+              }
+
+              if (event.event === 'error') {
+                setIsAwaitingFirstToken(false);
+                const fallback = String(event.payload.message ?? 'I could not process that message right now. Please try again.');
+                setChatMessages((prev) =>
+                  prev.map((item) => (item.id === draftBubbleId ? { ...item, content: fallback } : item)),
+                );
+              }
+            },
+          });
+          void refreshRecentChats();
+          return;
+        } catch {
+          setIsAwaitingFirstToken(false);
+          setChatMessages((prev) => prev.filter((item) => item.id !== draftBubbleId));
+        }
       }
 
       const turn = await postConversationMessage(activeConversationId, message);
       setConversationId(turn.conversation.id);
+      setCurrentChatId(turn.conversation.id);
       setPendingProposal(turn.pending_proposal ?? null);
       setChatMessages((prev) => [
         ...prev,
@@ -189,6 +312,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       if (turn.pending_proposal) {
         setQuery(turn.pending_proposal.normalized_query);
       }
+      void refreshRecentChats();
     } catch (error) {
       setChatMessages((prev) => [
         ...prev,
@@ -196,6 +320,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       ]);
     } finally {
       setIsSendingMessage(false);
+      setIsAwaitingFirstToken(false);
     }
   };
 
@@ -208,7 +333,6 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setState('running');
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
-    setCurrentInvestigationId(undefined);
     setQuery(pendingProposal.normalized_query);
 
     try {
@@ -219,6 +343,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       setActiveJobId(confirmed.job_id);
       setPendingProposal(null);
       setChatMessages((prev) => [...prev, assistantBubble('Confirmed. Creating your monitoring job now.')]);
+      void refreshRecentChats();
     } catch (error) {
       setState('idle');
       setChatMessages((prev) => [
@@ -239,7 +364,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     syncPath('/chat');
     setState('idle');
     setQuery('');
-    setCurrentInvestigationId(undefined);
+    setCurrentChatId(undefined);
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
     setConversationId(undefined);
@@ -247,15 +372,31 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     setChatMessages([]);
   };
 
-  const handleSelectInvestigation = (id: string) => {
-    const investigation = investigations.find((inv) => inv.id === id);
-    if (!investigation) return;
-    setQuery(investigation.query);
-    setState('results');
-    setCurrentInvestigationId(id);
-    setActiveJobId(undefined);
-    setCurrentJobId(investigation.jobId);
-    setPendingProposal(null);
+  const handleSelectChat = async (id: string) => {
+    setCurrentChatId(id);
+    try {
+      const snapshot = await getConversationSnapshot(id);
+      const lastUserMessage = [...snapshot.messages].reverse().find((message) => message.role === 'user');
+      setConversationId(snapshot.conversation.id);
+      setChatMessages(snapshot.messages.map(mapConversationMessageToBubble));
+      setPendingProposal(snapshot.pending_proposal ?? null);
+      setQuery(snapshot.pending_proposal?.normalized_query ?? lastUserMessage?.content ?? '');
+
+      if (snapshot.active_job_id) {
+        setState('running');
+        setCurrentJobId(undefined);
+        setActiveJobId(snapshot.active_job_id);
+      } else {
+        setState('idle');
+        setCurrentJobId(undefined);
+        setActiveJobId(undefined);
+      }
+    } catch (error) {
+      setChatMessages((prev) => [
+        ...prev,
+        assistantBubble(resolveErrorMessage(error, 'Could not load that chat. Try again.')),
+      ]);
+    }
   };
 
   useEffect(() => {
@@ -277,20 +418,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
           setState('results');
           setCurrentJobId(activeJobId);
           setActiveJobId(undefined);
-
-          if (!currentInvestigationId) {
-            const timestamp = Date.now();
-            const newInvestigation: Investigation = {
-              id: timestamp.toString(),
-              title: query,
-              timestamp: getRelativeTime(timestamp),
-              domain: detectDomain(query),
-              query,
-              jobId: activeJobId,
-            };
-            setInvestigations((prev) => [newInvestigation, ...prev]);
-            setCurrentInvestigationId(newInvestigation.id);
-          }
+          void refreshRecentChats();
           return;
         }
 
@@ -316,19 +444,19 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
         clearTimeout(timeoutId);
       }
     };
-  }, [state, activeJobId, currentInvestigationId, processingDelayMs, query]);
+  }, [state, activeJobId, processingDelayMs, refreshRecentChats]);
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setInvestigations((prev) =>
-        prev.map((investigation) => {
-          const timestamp = Number.parseInt(investigation.id, 10);
-          if (Number.isNaN(timestamp)) {
-            return investigation;
+      setRecentChats((prev) =>
+        prev.map((chat) => {
+          const updatedAtMillis = Date.parse(chat.updatedAt);
+          if (Number.isNaN(updatedAtMillis)) {
+            return chat;
           }
           return {
-            ...investigation,
-            timestamp: getRelativeTime(timestamp),
+            ...chat,
+            timestamp: getRelativeTime(updatedAtMillis),
           };
         }),
       );
@@ -348,10 +476,12 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   return (
     <div className="dark flex min-h-screen bg-background text-foreground">
       <Sidebar
-        investigations={investigations}
+        recentChats={recentChats}
         onNewInvestigation={handleNewInvestigation}
-        currentInvestigationId={currentInvestigationId}
-        onSelectInvestigation={handleSelectInvestigation}
+        currentChatId={currentChatId}
+        onSelectChat={(id) => void handleSelectChat(id)}
+        errorMessage={recentChatsError}
+        onRetryRecentChats={() => void refreshRecentChats()}
       />
 
       <div className="flex-1 overflow-y-auto">
@@ -363,7 +493,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
             onConfirmProposal={handleConfirmProposal}
             onEditProposal={handleEditProposal}
             disabled={isSendingMessage || isConfirmingProposal}
-            showAssistantTyping={isSendingMessage}
+            showAssistantTyping={isSendingMessage && isAwaitingFirstToken}
           />
         )}
         {state === 'running' && <RunningState />}

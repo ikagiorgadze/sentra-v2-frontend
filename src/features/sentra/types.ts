@@ -10,6 +10,14 @@ export interface Investigation {
   jobId?: string;
 }
 
+export interface RecentChat {
+  id: string;
+  title: string;
+  timestamp: string;
+  state: string;
+  updatedAt: string;
+}
+
 export interface SentraState {
   currentView: AppView;
   appState: AppState;

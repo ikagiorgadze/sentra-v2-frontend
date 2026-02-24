@@ -4,6 +4,7 @@ import type {
   ConfirmConversationJobRecord,
   ConversationMessageRecord,
   ConversationRecord,
+  ConversationSnapshotRecord,
   ConversationTurnRecord,
 } from '@/features/sentra/types/conversation';
 
@@ -61,6 +62,16 @@ export async function getConversation(conversationId: string): Promise<Conversat
   }
 
   return (await response.json()) as ConversationRecord;
+}
+
+export async function getConversationSnapshot(conversationId: string): Promise<ConversationSnapshotRecord> {
+  const response = await apiFetch(`/v1/conversations/${conversationId}/snapshot`);
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+
+  return (await response.json()) as ConversationSnapshotRecord;
 }
 
 export async function listConversationMessages(conversationId: string): Promise<ConversationMessageRecord[]> {
