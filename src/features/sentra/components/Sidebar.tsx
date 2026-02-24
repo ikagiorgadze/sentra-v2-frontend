@@ -4,6 +4,8 @@ import type { RecentChat } from '@/features/sentra/types';
 interface SidebarProps {
   recentChats: RecentChat[];
   onNewInvestigation: () => void;
+  onOpenDemo?: () => void;
+  isAdminUser?: boolean;
   currentChatId?: string;
   onSelectChat: (id: string) => void;
   errorMessage?: string | null;
@@ -13,6 +15,8 @@ interface SidebarProps {
 export function Sidebar({
   recentChats,
   onNewInvestigation,
+  onOpenDemo,
+  isAdminUser = false,
   currentChatId,
   onSelectChat,
   errorMessage,
@@ -36,6 +40,15 @@ export function Sidebar({
           <Plus className="h-4 w-4" />
           New Investigation
         </button>
+        {isAdminUser && onOpenDemo && (
+          <button
+            type="button"
+            onClick={onOpenDemo}
+            className="mt-2 flex w-full items-center justify-center gap-2 rounded border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-card/80"
+          >
+            Demo
+          </button>
+        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-4">

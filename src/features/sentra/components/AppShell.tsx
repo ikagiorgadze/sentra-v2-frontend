@@ -115,6 +115,9 @@ function isStreamingEnabled(): boolean {
 
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000, adminDemoMode = false }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
+  const accessToken = getAccessToken();
+  const isAdminUser =
+    !!accessToken && isTokenUnexpired(accessToken) && getTokenRole(accessToken) === 'admin';
   const [currentView, setCurrentView] = useState<AppView>(() => {
     if (initialView === 'app') {
       return isAuthenticated ? 'app' : 'auth';
@@ -230,6 +233,10 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     setPendingProposal(null);
     setChatMessages([]);
     setCurrentChatId(undefined);
+  };
+
+  const handleOpenDemo = () => {
+    syncPath('/admin/demo');
   };
 
   const handleSendMessage = async (message: string) => {
@@ -521,6 +528,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       <Sidebar
         recentChats={recentChats}
         onNewInvestigation={handleNewInvestigation}
+        onOpenDemo={handleOpenDemo}
+        isAdminUser={isAdminUser}
         currentChatId={currentChatId}
         onSelectChat={(id) => void handleSelectChat(id)}
         errorMessage={recentChatsError}
