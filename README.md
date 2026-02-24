@@ -44,9 +44,9 @@ uv run alembic upgrade head
 uv run uvicorn sentra_api.main:app --app-dir src --reload
 ```
 Backend `.env` recommendation for modern chat behavior:
-- `AGENT_LLM_ENABLED=true`
+- `AGENT_RUNTIME=langchain`
 - `GEMINI_API_KEY=<your-key>`
-- `AGENT_MAX_TOOL_CALLS_PER_TURN=3`
+- `LANGCHAIN_MODEL_NAME=gemini-2.0-flash`
 
 2. Start frontend (from this repo):
 ```bash
@@ -76,12 +76,15 @@ The frontend stores backend access tokens in local storage and sends `Authorizat
 ## Conversation-to-Job UX flow
 1. User types a freeform request in the chat composer.
 2. Frontend creates a conversation if needed (`POST /v1/conversations`) and sends message (`POST /messages`).
-3. Backend returns assistant reply and (when enough context exists) a `pending_proposal`.
+3. Backend returns assistant reply with `conversation_state`, and either:
+   - `clarification` metadata, or
+   - `proposal` when intent is complete.
 4. UI renders a **Confirm Query** card with `Confirm` and `Edit`.
 5. Only on `Confirm` does frontend call `POST /confirm-job`.
 6. Frontend switches to running state, polls `GET /v1/jobs/{jobId}`, then renders results.
 
 Important: the app is intentionally configured to require explicit confirmation for every job creation.
+Sentiment analysis runs in backend pipeline after confirmation; it is not triggered during clarification turns.
 
 ## Chat Smoke Scenario
 Use this quick manual scenario after both apps are running:
