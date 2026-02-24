@@ -52,6 +52,8 @@ export interface DemoConversationController {
   pendingProposal: ConversationProposalRecord | null;
   currentJobId?: string;
   isPlaying: boolean;
+  validationError: string | null;
+  isScenarioValid: boolean;
   play: () => void;
   pause: () => void;
   nextStep: () => Promise<void>;
@@ -62,8 +64,26 @@ export interface DemoConversationController {
   analysisPayload: DemoAnalysisPayload;
 }
 
-export function useDemoConversation(): DemoConversationController {
-  const [scenarioId, setScenarioId] = useState(DEMO_SCENARIOS[0]?.id ?? '');
+interface DemoConversationOptions {
+  scenarios?: DemoScenario[];
+}
+
+function validateScenario(scenario: DemoScenario | undefined): string | null {
+  if (!scenario) {
+    return 'No demo scenario is available.';
+  }
+  if (!scenario.script?.length) {
+    return 'Selected demo scenario has no scripted steps.';
+  }
+  if (!scenario.analysisPayload?.query || !scenario.analysisPayload?.summary) {
+    return 'Selected demo scenario is missing required analysis payload.';
+  }
+  return null;
+}
+
+export function useDemoConversation(options: DemoConversationOptions = {}): DemoConversationController {
+  const scenarios = options.scenarios ?? DEMO_SCENARIOS;
+  const [scenarioId, setScenarioId] = useState(scenarios[0]?.id ?? '');
   const [messages, setMessages] = useState<ChatBubble[]>([]);
   const [query, setQuery] = useState('');
   const [pendingProposal, setPendingProposal] = useState<ConversationProposalRecord | null>(null);
@@ -76,10 +96,9 @@ export function useDemoConversation(): DemoConversationController {
   const tokenTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const streamStateRef = useRef<StreamState | null>(null);
 
-  const scenario = useMemo(
-    () => DEMO_SCENARIOS.find((item) => item.id === scenarioId) ?? DEMO_SCENARIOS[0],
-    [scenarioId],
-  );
+  const scenario = useMemo(() => scenarios.find((item) => item.id === scenarioId) ?? scenarios[0], [scenarioId, scenarios]);
+  const validationError = useMemo(() => validateScenario(scenario), [scenario]);
+  const isScenarioValid = validationError === null;
 
   const clearStepTimer = useCallback(() => {
     if (stepTimerRef.current) {
@@ -152,6 +171,9 @@ export function useDemoConversation(): DemoConversationController {
   );
 
   const nextStep = useCallback(async (): Promise<void> => {
+    if (!isScenarioValid) {
+      return;
+    }
     const activeScenario = scenario;
     if (!activeScenario) {
       return;
@@ -222,7 +244,7 @@ export function useDemoConversation(): DemoConversationController {
         scheduleAutoStep(nextStep);
       }
     }
-  }, [flushStreamToEnd, isPlaying, pendingProposal, scenario, scheduleAutoStep, tickStream]);
+  }, [flushStreamToEnd, isPlaying, isScenarioValid, pendingProposal, scenario, scheduleAutoStep, tickStream]);
 
   const reset = useCallback(() => {
     clearStepTimer();
@@ -250,11 +272,14 @@ export function useDemoConversation(): DemoConversationController {
   );
 
   const play = useCallback(() => {
+    if (!isScenarioValid) {
+      return;
+    }
     if (isPlaying) {
       return;
     }
     setIsPlaying(true);
-  }, [isPlaying]);
+  }, [isPlaying, isScenarioValid]);
 
   const pause = useCallback(() => {
     setIsPlaying(false);
@@ -263,10 +288,13 @@ export function useDemoConversation(): DemoConversationController {
   }, [clearStepTimer, clearTokenTimer]);
 
   const confirmProposal = useCallback(() => {
+    if (!isScenarioValid) {
+      return;
+    }
     setPendingProposal(null);
     setMessages((prev) => [...prev, makeAssistantBubble('Confirmed. Creating your monitoring job now.')]);
     setIsPlaying(true);
-  }, []);
+  }, [isScenarioValid]);
 
   useEffect(() => {
     if (!isPlaying) {
@@ -294,7 +322,7 @@ export function useDemoConversation(): DemoConversationController {
   );
 
   return {
-    scenarios: DEMO_SCENARIOS,
+    scenarios,
     scenario,
     messages,
     query,
@@ -302,6 +330,8 @@ export function useDemoConversation(): DemoConversationController {
     pendingProposal,
     currentJobId,
     isPlaying,
+    validationError,
+    isScenarioValid,
     play,
     pause,
     nextStep,
@@ -309,6 +339,11 @@ export function useDemoConversation(): DemoConversationController {
     restartScenario,
     setScenario,
     confirmProposal,
-    analysisPayload: scenario.analysisPayload,
+    analysisPayload: scenario?.analysisPayload ?? {
+      query: 'Demo scenario unavailable',
+      summary: 'Demo scenario configuration is invalid.',
+      sentimentOverview: { positive: 0, neutral: 0, negative: 0 },
+      sentimentTimeseries: [],
+    },
   };
 }

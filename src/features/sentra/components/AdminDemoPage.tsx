@@ -6,9 +6,14 @@ import { RightPanel } from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { useDemoConversation } from '@/features/sentra/demo/useDemoConversation';
+import type { DemoScenario } from '@/features/sentra/demo/types';
 
-export function AdminDemoPage() {
-  const controller = useDemoConversation();
+interface AdminDemoPageProps {
+  scenarios?: DemoScenario[];
+}
+
+export function AdminDemoPage({ scenarios }: AdminDemoPageProps) {
+  const controller = useDemoConversation({ scenarios });
 
   const scenarioOptions = useMemo(
     () =>
@@ -38,6 +43,7 @@ export function AdminDemoPage() {
                 className="rounded border border-border bg-card px-3 py-2 text-sm text-foreground"
                 value={controller.scenario.id}
                 onChange={(event) => controller.setScenario(event.target.value)}
+                disabled={!controller.isScenarioValid}
               >
                 {scenarioOptions}
               </select>
@@ -46,6 +52,7 @@ export function AdminDemoPage() {
             <button
               type="button"
               onClick={controller.play}
+              disabled={!controller.isScenarioValid}
               className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
             >
               Play
@@ -53,6 +60,7 @@ export function AdminDemoPage() {
             <button
               type="button"
               onClick={controller.pause}
+              disabled={!controller.isScenarioValid}
               className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
             >
               Pause
@@ -60,6 +68,7 @@ export function AdminDemoPage() {
             <button
               type="button"
               onClick={() => void controller.nextStep()}
+              disabled={!controller.isScenarioValid}
               className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
             >
               Next step
@@ -67,6 +76,7 @@ export function AdminDemoPage() {
             <button
               type="button"
               onClick={controller.reset}
+              disabled={!controller.isScenarioValid}
               className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
             >
               Reset
@@ -74,11 +84,17 @@ export function AdminDemoPage() {
             <button
               type="button"
               onClick={controller.restartScenario}
+              disabled={!controller.isScenarioValid}
               className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
             >
               Restart scenario
             </button>
           </div>
+          {controller.validationError && (
+            <p className="mx-auto mt-3 w-full max-w-3xl rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">
+              {controller.validationError}
+            </p>
+          )}
         </div>
 
         {controller.appState === 'idle' && (
