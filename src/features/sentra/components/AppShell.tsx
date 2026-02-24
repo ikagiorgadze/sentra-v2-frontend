@@ -233,7 +233,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
                 return;
               }
 
-              if (event.event === 'token') {
+              if (event.event === 'assistant_token') {
                 const delta = String(event.payload.delta ?? '');
                 if (!delta) {
                   return;
@@ -245,8 +245,19 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
                 return;
               }
 
-              if (event.event === 'proposal') {
-                const pending = event.payload.pending_proposal as ConversationProposalRecord | undefined;
+              if (event.event === 'clarification') {
+                const clarification = event.payload.clarification as { question?: string } | undefined;
+                const question = clarification?.question?.trim();
+                if (question) {
+                  setChatMessages((prev) =>
+                    prev.map((item) => (item.id === draftBubbleId ? { ...item, content: question } : item)),
+                  );
+                }
+                return;
+              }
+
+              if (event.event === 'proposal_ready') {
+                const pending = event.payload.proposal as ConversationProposalRecord | undefined;
                 if (pending) {
                   setPendingProposal(pending);
                   setQuery(pending.normalized_query);
@@ -254,7 +265,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
                 return;
               }
 
-              if (event.event === 'turn_end') {
+              if (event.event === 'turn_complete') {
                 setIsAwaitingFirstToken(false);
                 const payloadConversation = event.payload.conversation as { id?: string } | undefined;
                 if (payloadConversation?.id) {
@@ -271,7 +282,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
                     ),
                   );
                 }
-                const pending = event.payload.pending_proposal as ConversationProposalRecord | null | undefined;
+                const pending = (event.payload.proposal ?? null) as ConversationProposalRecord | null | undefined;
                 if (pending) {
                   setPendingProposal(pending);
                   setQuery(pending.normalized_query);
@@ -299,7 +310,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
       const turn = await postConversationMessage(activeConversationId, message);
       setConversationId(turn.conversation.id);
       setCurrentChatId(turn.conversation.id);
-      setPendingProposal(turn.pending_proposal ?? null);
+      const resolvedProposal = turn.proposal ?? turn.pending_proposal ?? null;
+      setPendingProposal(resolvedProposal);
       setChatMessages((prev) => [
         ...prev,
         {
@@ -309,8 +321,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
         },
       ]);
 
-      if (turn.pending_proposal) {
-        setQuery(turn.pending_proposal.normalized_query);
+      if (resolvedProposal) {
+        setQuery(resolvedProposal.normalized_query);
       }
       void refreshRecentChats();
     } catch (error) {

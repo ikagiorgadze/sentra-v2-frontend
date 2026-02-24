@@ -32,14 +32,24 @@ export interface ConversationProposalRecord {
   version: number;
   normalized_query: string;
   filters_json?: Record<string, unknown> | null;
+  collection_plan?: Record<string, unknown> | null;
   status: 'pending' | 'confirmed' | 'superseded';
   inserted_at: string;
   updated_at: string;
 }
 
+export interface ClarificationRecord {
+  missing_fields: string[];
+  question: string;
+}
+
 export interface ConversationTurnRecord {
   conversation: ConversationRecord;
+  conversation_state?: ConversationState | null;
   assistant_message: ConversationMessageRecord;
+  proposal?: ConversationProposalRecord | null;
+  clarification?: ClarificationRecord | null;
+  agent_trace_id?: string | null;
   pending_proposal?: ConversationProposalRecord | null;
 }
 
@@ -62,7 +72,13 @@ export interface ConfirmConversationJobInput {
   idempotencyKey: string;
 }
 
-export type ConversationStreamEventType = 'turn_start' | 'token' | 'proposal' | 'turn_end' | 'error';
+export type ConversationStreamEventType =
+  | 'turn_start'
+  | 'assistant_token'
+  | 'clarification'
+  | 'proposal_ready'
+  | 'turn_complete'
+  | 'error';
 
 export interface ConversationStreamEvent {
   event: ConversationStreamEventType;

@@ -55,9 +55,9 @@ describe('chat streaming flow', () => {
           start(controller) {
             controller.enqueue(
               encoder.encode(
-                'event: turn_end\ndata: {"conversation":{"id":"' +
+                'event: turn_complete\ndata: {"conversation":{"id":"' +
                   conversationId +
-                  '"},"assistant_message":{"id":"m1","content":"Hello"}}\n\n',
+                  '"},"assistant_message":{"id":"m1","content":"Hello"},"proposal":null}\n\n',
               ),
             );
             controller.close();
@@ -112,16 +112,16 @@ describe('chat streaming flow', () => {
             controller.enqueue(
               encoder.encode(
                 'event: turn_start\ndata: {"conversation":{"id":"' + conversationId + '"}}\n\n' +
-                  'event: token\ndata: {"delta":"Hel"}\n\n',
+                  'event: assistant_token\ndata: {"delta":"Hel"}\n\n',
               ),
             );
             releaseSecondChunk = () => {
               controller.enqueue(
                 encoder.encode(
-                  'event: token\ndata: {"delta":"lo"}\n\n' +
-                    'event: turn_end\ndata: {"conversation":{"id":"' +
+                  'event: assistant_token\ndata: {"delta":"lo"}\n\n' +
+                    'event: turn_complete\ndata: {"conversation":{"id":"' +
                     conversationId +
-                    '"},"assistant_message":{"id":"m1","content":"Hello"}}\n\n',
+                    '"},"assistant_message":{"id":"m1","content":"Hello"},"proposal":null}\n\n',
                 ),
               );
               controller.close();
