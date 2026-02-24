@@ -19,6 +19,7 @@ describe('admin demo page', () => {
 
     render(<AdminDemoPage />);
 
+    await user.selectOptions(screen.getByLabelText(/scenario/i), 'iphone-rival-campaign');
     await user.click(screen.getByRole('button', { name: /next step/i }));
     await user.click(screen.getByRole('button', { name: /next step/i }));
     await user.click(screen.getByRole('button', { name: /next step/i }));
