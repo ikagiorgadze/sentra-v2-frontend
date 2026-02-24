@@ -71,6 +71,10 @@ export async function streamConversationMessage(
   if (!response.ok) {
     throw new Error(await parseError(response));
   }
+  const contentType = response.headers.get('content-type') ?? '';
+  if (!contentType.toLowerCase().includes('text/event-stream')) {
+    throw new Error('Streaming endpoint did not return an event stream payload');
+  }
   if (!response.body) {
     throw new Error('Streaming response body missing');
   }
@@ -95,4 +99,3 @@ export async function streamConversationMessage(
     }
   }
 }
-
