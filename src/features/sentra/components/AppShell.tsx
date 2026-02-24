@@ -73,6 +73,17 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
   return fallback;
 }
 
+function syncPath(path: string): void {
+  if (window.location.pathname === path) {
+    return;
+  }
+  window.history.replaceState({}, '', path);
+}
+
+function isAuthPath(pathname: string): boolean {
+  return pathname === '/login' || pathname === '/register' || pathname === '/registration-notice';
+}
+
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
   const [currentView, setCurrentView] = useState<AppView>(() => {
@@ -105,15 +116,29 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
     }
   }, [currentView, isAuthenticated]);
 
+  useEffect(() => {
+    const pathname = window.location.pathname;
+    if (currentView === 'auth' && !isAuthPath(pathname)) {
+      syncPath('/login');
+      return;
+    }
+    if (currentView === 'app' && isAuthPath(pathname)) {
+      syncPath('/chat');
+    }
+  }, [currentView]);
+
   const handleGetStarted = () => {
+    syncPath('/login');
     setCurrentView('auth');
   };
 
   const handleAuthenticate = () => {
+    syncPath('/chat');
     setCurrentView('app');
   };
 
   const handleViewSample = () => {
+    syncPath('/sample-report');
     setCurrentView('app');
     const sampleQuery = 'Sentiment about pension reform in Romania last 7 days';
     setQuery(sampleQuery);
@@ -211,6 +236,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   };
 
   const handleNewInvestigation = () => {
+    syncPath('/chat');
     setState('idle');
     setQuery('');
     setCurrentInvestigationId(undefined);
