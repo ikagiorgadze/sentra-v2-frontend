@@ -30,6 +30,7 @@ const App = () => {
             <Route path="/registration-notice" element={<AppShell initialView="auth" />} />
 
             <Route path="/chat" element={<AppShell initialView="app" />} />
+            <Route path="/admin/demo" element={<AppShell initialView="app" adminDemoMode />} />
             <Route path="/dashboard" element={<AppShell initialView="app" />} />
             <Route path="/billing" element={<AppShell initialView="app" />} />
             <Route path="/onboarding" element={<AppShell initialView="app" />} />

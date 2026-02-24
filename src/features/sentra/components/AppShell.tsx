@@ -16,13 +16,17 @@ import { LandingPage } from '@/features/sentra/components/LandingPage';
 import { RightPanel } from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
+import { AdminDemoPage } from '@/features/sentra/components/AdminDemoPage';
+import { getTokenRole, isTokenUnexpired } from '@/features/sentra/auth/tokenClaims';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
 import type { ConversationMessageRecord, ConversationProposalRecord } from '@/features/sentra/types/conversation';
 import { AppState, AppView, RecentChat } from '@/features/sentra/types';
+import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
 
 interface AppShellProps {
   initialView?: AppView;
   processingDelayMs?: number;
+  adminDemoMode?: boolean;
 }
 
 function getRelativeTime(timestamp: number) {
@@ -109,7 +113,7 @@ function isStreamingEnabled(): boolean {
   return true;
 }
 
-export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
+export function AppShell({ initialView = 'landing', processingDelayMs = 3000, adminDemoMode = false }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
   const [currentView, setCurrentView] = useState<AppView>(() => {
     if (initialView === 'app') {
@@ -133,6 +137,29 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   const [isAwaitingFirstToken, setIsAwaitingFirstToken] = useState(false);
   const [isConfirmingProposal, setIsConfirmingProposal] = useState(false);
   const [recentChatsError, setRecentChatsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!adminDemoMode) {
+      return;
+    }
+
+    const token = getAccessToken();
+    if (!token || !isTokenUnexpired(token)) {
+      clearAccessToken();
+      syncPath('/login');
+      setCurrentView('auth');
+      return;
+    }
+
+    if (getTokenRole(token) !== 'admin') {
+      syncPath('/chat');
+      setCurrentView('app');
+      return;
+    }
+
+    syncPath('/admin/demo');
+    setCurrentView('app');
+  }, [adminDemoMode]);
 
   useEffect(() => {
     if (currentView === 'app' && !isAuthenticated) {
@@ -483,6 +510,10 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
 
   if (currentView === 'auth') {
     return <AuthPage onAuthenticate={handleAuthenticate} />;
+  }
+
+  if (adminDemoMode) {
+    return <AdminDemoPage />;
   }
 
   return (
