@@ -86,6 +86,24 @@ The frontend stores backend access tokens in local storage and sends `Authorizat
 Important: the app is intentionally configured to require explicit confirmation for every job creation.
 Sentiment analysis runs in backend pipeline after confirmation; it is not triggered during clarification turns.
 
+## Admin Demo Page (Mocked)
+- Route: `/admin/demo`
+- Access: frontend role gate requires JWT payload `role=admin`
+- Purpose: run scripted demo conversations that mimic live chat/proposal/job/results UX with mock data only
+- Scenario config: `src/features/sentra/demo/scenarios.ts`
+- Demo engine: `src/features/sentra/demo/useDemoConversation.ts`
+- Demo controls on page:
+  - Scenario selector
+  - Play/Pause timeline
+  - Next step
+  - Reset / Restart scenario
+
+Notes:
+- User messages are injected instantly.
+- Assistant responses stream progressively token-by-token.
+- Proposal confirmation, running state, and results are simulated in frontend.
+- No backend calls are required for demo playback.
+
 ## Chat Smoke Scenario
 Use this quick manual scenario after both apps are running:
 1. Send `hi` and confirm the assistant responds naturally.
