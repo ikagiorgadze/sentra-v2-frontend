@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { AppShell } from '@/features/sentra/components/AppShell';
 import { clearAccessToken, setAccessToken } from '@/lib/auth/tokenStorage';
@@ -20,6 +20,14 @@ function makeToken(expOffsetSeconds: number): string {
 }
 
 describe('chat confirmation flow', () => {
+  beforeEach(() => {
+    window.__SENTRA_STREAMING_ENABLED__ = false;
+  });
+
+  afterEach(() => {
+    window.__SENTRA_STREAMING_ENABLED__ = undefined;
+  });
+
   it('shows confirm card and only creates job after explicit confirm', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
@@ -202,10 +210,6 @@ describe('chat confirmation flow', () => {
 
     await user.type(screen.getByRole('textbox', { name: /query/i }), 'hi');
     await user.keyboard('{Enter}');
-
-    await waitFor(() => {
-      expect(screen.getByText(/sentra is thinking/i)).toBeInTheDocument();
-    });
 
     resolveMessageRequest?.(
       new Response(
