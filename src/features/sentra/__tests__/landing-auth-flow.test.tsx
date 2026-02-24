@@ -41,4 +41,10 @@ describe('landing/auth flow', () => {
     render(<AppShell initialView="app" />);
     expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
   });
+
+  it('redirects authenticated users away from auth view', () => {
+    setAccessToken(makeToken(3600));
+    render(<AppShell initialView="auth" />);
+    expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
+  });
 });

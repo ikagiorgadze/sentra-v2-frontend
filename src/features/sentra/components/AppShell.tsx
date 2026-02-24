@@ -75,9 +75,15 @@ function resolveErrorMessage(error: unknown, fallback: string): string {
 
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
-  const [currentView, setCurrentView] = useState<AppView>(() =>
-    initialView === 'app' && !isAuthenticated ? 'auth' : initialView,
-  );
+  const [currentView, setCurrentView] = useState<AppView>(() => {
+    if (initialView === 'app') {
+      return isAuthenticated ? 'app' : 'auth';
+    }
+    if (initialView === 'auth') {
+      return isAuthenticated ? 'app' : 'auth';
+    }
+    return initialView;
+  });
   const [state, setState] = useState<AppState>('idle');
   const [query, setQuery] = useState('');
   const [investigations, setInvestigations] = useState<Investigation[]>([]);
@@ -93,6 +99,9 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000 }: 
   useEffect(() => {
     if (currentView === 'app' && !isAuthenticated) {
       setCurrentView('auth');
+    }
+    if (currentView === 'auth' && isAuthenticated) {
+      setCurrentView('app');
     }
   }, [currentView, isAuthenticated]);
 
