@@ -80,8 +80,9 @@ export function ConversationPanel({
 
           {showAssistantTyping && (
             <div className="mr-auto max-w-[80%]">
-              <div className="rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
-                Sentra is thinking...
+              <div className="inline-flex items-center gap-2 rounded-lg border border-border bg-card px-4 py-3 text-sm text-muted-foreground">
+                <img src="/favicon.svg" alt="Sentra logo" className="h-4 w-4" />
+                <span>Sentra is thinking...</span>
               </div>
             </div>
           )}
