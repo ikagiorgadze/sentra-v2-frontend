@@ -1,0 +1,105 @@
+import { useMemo } from 'react';
+
+import { ConversationPanel } from '@/features/sentra/components/chat/ConversationPanel';
+import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
+import { RightPanel } from '@/features/sentra/components/RightPanel';
+import { RunningState } from '@/features/sentra/components/RunningState';
+import { Sidebar } from '@/features/sentra/components/Sidebar';
+import { useDemoConversation } from '@/features/sentra/demo/useDemoConversation';
+
+export function AdminDemoPage() {
+  const controller = useDemoConversation();
+
+  const scenarioOptions = useMemo(
+    () =>
+      controller.scenarios.map((scenario) => (
+        <option key={scenario.id} value={scenario.id}>
+          {scenario.name}
+        </option>
+      )),
+    [controller.scenarios],
+  );
+
+  return (
+    <div className="dark flex min-h-screen bg-background text-foreground">
+      <Sidebar
+        recentChats={[]}
+        onNewInvestigation={controller.restartScenario}
+        onSelectChat={() => undefined}
+      />
+
+      <div className="flex-1 overflow-y-auto">
+        <div className="border-b border-border px-6 py-4">
+          <div className="mx-auto flex w-full max-w-3xl flex-wrap items-end gap-3">
+            <label className="flex min-w-[220px] flex-col gap-1 text-xs uppercase tracking-wider text-muted-foreground">
+              Scenario
+              <select
+                aria-label="Scenario"
+                className="rounded border border-border bg-card px-3 py-2 text-sm text-foreground"
+                value={controller.scenario.id}
+                onChange={(event) => controller.setScenario(event.target.value)}
+              >
+                {scenarioOptions}
+              </select>
+            </label>
+
+            <button
+              type="button"
+              onClick={controller.play}
+              className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
+            >
+              Play
+            </button>
+            <button
+              type="button"
+              onClick={controller.pause}
+              className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
+            >
+              Pause
+            </button>
+            <button
+              type="button"
+              onClick={() => void controller.nextStep()}
+              className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
+            >
+              Next step
+            </button>
+            <button
+              type="button"
+              onClick={controller.reset}
+              className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
+            >
+              Reset
+            </button>
+            <button
+              type="button"
+              onClick={controller.restartScenario}
+              className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
+            >
+              Restart scenario
+            </button>
+          </div>
+        </div>
+
+        {controller.appState === 'idle' && (
+          <ConversationPanel
+            messages={controller.messages}
+            pendingProposal={controller.pendingProposal}
+            onSend={() => undefined}
+            onConfirmProposal={controller.confirmProposal}
+            onEditProposal={() => undefined}
+            hideComposer
+          />
+        )}
+
+        {controller.appState === 'running' && <RunningState />}
+
+        {controller.appState === 'results' && (
+          <IntelligenceBrief query={controller.analysisPayload.query || controller.query} />
+        )}
+      </div>
+
+      <RightPanel />
+    </div>
+  );
+}

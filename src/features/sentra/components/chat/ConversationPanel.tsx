@@ -18,6 +18,7 @@ interface ConversationPanelProps {
   onEditProposal: () => void;
   disabled?: boolean;
   showAssistantTyping?: boolean;
+  hideComposer?: boolean;
 }
 
 export function ConversationPanel({
@@ -28,6 +29,7 @@ export function ConversationPanel({
   onEditProposal,
   disabled = false,
   showAssistantTyping = false,
+  hideComposer = false,
 }: ConversationPanelProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -89,9 +91,11 @@ export function ConversationPanel({
         </div>
       </div>
 
-      <div className="mx-auto w-full max-w-3xl px-6 pb-6">
-        <MessageComposer onSend={onSend} disabled={disabled} />
-      </div>
+      {!hideComposer && (
+        <div className="mx-auto w-full max-w-3xl px-6 pb-6">
+          <MessageComposer onSend={onSend} disabled={disabled} />
+        </div>
+      )}
     </div>
   );
 }
