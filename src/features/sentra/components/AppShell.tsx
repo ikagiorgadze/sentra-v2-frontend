@@ -128,6 +128,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     return initialView;
   });
   const [state, setState] = useState<AppState>('idle');
+  const [runningStatusLabel, setRunningStatusLabel] = useState('queued');
+  const [runningWarning, setRunningWarning] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [recentChats, setRecentChats] = useState<RecentChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | undefined>();
@@ -377,6 +379,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
 
     setIsConfirmingProposal(true);
     setState('running');
+    setRunningStatusLabel('queued');
+    setRunningWarning(null);
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
     setQuery(pendingProposal.normalized_query);
@@ -387,6 +391,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
         idempotencyKey: crypto.randomUUID(),
       });
       setActiveJobId(confirmed.job_id);
+      setRunningStatusLabel(confirmed.status);
       setPendingProposal(null);
       setChatMessages((prev) => [...prev, assistantBubble('Confirmed. Creating your monitoring job now.')]);
       void refreshRecentChats();
@@ -413,6 +418,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     setCurrentChatId(undefined);
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
+    setRunningStatusLabel('queued');
+    setRunningWarning(null);
     setConversationId(undefined);
     setPendingProposal(null);
     setChatMessages([]);
@@ -430,10 +437,14 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
 
       if (snapshot.active_job_id) {
         setState('running');
+        setRunningStatusLabel('running');
+        setRunningWarning(null);
         setCurrentJobId(undefined);
         setActiveJobId(snapshot.active_job_id);
       } else {
         setState('idle');
+        setRunningStatusLabel('queued');
+        setRunningWarning(null);
         setCurrentJobId(undefined);
         setActiveJobId(undefined);
       }
@@ -452,6 +463,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
 
     let isCancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let consecutivePollErrors = 0;
 
     const poll = async () => {
       try {
@@ -459,6 +471,9 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
         if (isCancelled) {
           return;
         }
+        consecutivePollErrors = 0;
+        setRunningStatusLabel(job.status);
+        setRunningWarning(null);
 
         if (job.status === 'completed') {
           setState('results');
@@ -472,11 +487,25 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
           setState('idle');
           setActiveJobId(undefined);
           setCurrentJobId(undefined);
-          setChatMessages((prev) => [...prev, assistantBubble('The job failed. You can edit and confirm a new query.')]);
+          setRunningWarning(null);
+          const detail = job.error_message?.trim() || 'The job failed.';
+          setChatMessages((prev) => [
+            ...prev,
+            assistantBubble(`${detail} You can edit and confirm a new query.`),
+          ]);
           return;
         }
       } catch {
-        // Keep polling when backend is temporarily unavailable.
+        consecutivePollErrors += 1;
+        if (consecutivePollErrors >= 5) {
+          const warning = 'Job status is temporarily unreachable. Retrying...';
+          setRunningWarning(warning);
+          setChatMessages((prev) => [
+            ...prev,
+            assistantBubble(warning),
+          ]);
+          consecutivePollErrors = 0;
+        }
       }
 
       timeoutId = setTimeout(poll, processingDelayMs);
@@ -548,7 +577,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
             showAssistantTyping={isSendingMessage && isAwaitingFirstToken}
           />
         )}
-        {state === 'running' && <RunningState />}
+        {state === 'running' && <RunningState statusLabel={runningStatusLabel} warningMessage={runningWarning} />}
         {state === 'results' && <IntelligenceBrief query={query} jobId={currentJobId} />}
       </div>
 
