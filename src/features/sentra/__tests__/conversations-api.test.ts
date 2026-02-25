@@ -81,7 +81,7 @@ describe('conversations api', () => {
   });
 
   it('confirms a proposal and returns linked job', async () => {
-    vi.spyOn(global, 'fetch').mockResolvedValue(
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(
       new Response(
         JSON.stringify({
           conversation_id: '20d6f6d2-8105-4f20-8151-2bdadf7a9a31',
@@ -96,10 +96,18 @@ describe('conversations api', () => {
     const confirmed = await confirmConversationJob('20d6f6d2-8105-4f20-8151-2bdadf7a9a31', {
       proposalVersion: 1,
       idempotencyKey: 'idemp-1',
+      collectionPlanOverrides: {
+        min_confidence: 70,
+      },
     });
 
     expect(confirmed.job_id).toBe('120d6e13-9f74-42bb-9fff-395a7f4f5f00');
     expect(confirmed.status).toBe('queued');
+    const request = fetchMock.mock.calls[0]?.[1];
+    const sentBody = JSON.parse(String(request?.body ?? '{}')) as Record<string, unknown>;
+    expect(sentBody.collection_plan_overrides).toEqual(
+      expect.objectContaining({ min_confidence: 70 }),
+    );
   });
 
   it('throws backend detail when posting a message fails', async () => {
