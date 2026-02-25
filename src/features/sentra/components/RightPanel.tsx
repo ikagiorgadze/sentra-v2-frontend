@@ -1,8 +1,52 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { useState } from 'react';
 
-export function RightPanel() {
+const SOURCE_TYPE_OPTIONS = ['Social Media', 'News Sites', 'Forums', 'Blogs', 'Official'] as const;
+
+export interface AdvancedFilters {
+  source_types: string[];
+  min_confidence: number;
+  account_age_filter: 'all' | '30d' | '90d' | '365d';
+}
+
+export function createDefaultAdvancedFilters(): AdvancedFilters {
+  return {
+    source_types: [...SOURCE_TYPE_OPTIONS],
+    min_confidence: 70,
+    account_age_filter: 'all',
+  };
+}
+
+interface RightPanelProps {
+  filters?: AdvancedFilters;
+  onChange?: (filters: AdvancedFilters) => void;
+}
+
+export function RightPanel({ filters, onChange }: RightPanelProps = {}) {
   const [isCollapsed, setIsCollapsed] = useState(true);
+  const [internalFilters, setInternalFilters] = useState<AdvancedFilters>(() => createDefaultAdvancedFilters());
+  const resolvedFilters = filters ?? internalFilters;
+
+  const setFilters = (next: AdvancedFilters) => {
+    if (filters === undefined) {
+      setInternalFilters(next);
+    }
+    onChange?.(next);
+  };
+
+  const toggleSourceType = (type: string, checked: boolean) => {
+    const nextSet = new Set(resolvedFilters.source_types);
+    if (checked) {
+      nextSet.add(type);
+    } else {
+      nextSet.delete(type);
+    }
+    const ordered = SOURCE_TYPE_OPTIONS.filter((option) => nextSet.has(option));
+    setFilters({
+      ...resolvedFilters,
+      source_types: ordered,
+    });
+  };
 
   return (
     <div className={`flex h-screen border-l border-border bg-card transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}>
@@ -27,11 +71,12 @@ export function RightPanel() {
             <div className="space-y-2">
               <label className="text-xs text-foreground">Source Types</label>
               <div className="space-y-1.5">
-                {['Social Media', 'News Sites', 'Forums', 'Blogs', 'Official'].map((type) => (
+                {SOURCE_TYPE_OPTIONS.map((type) => (
                   <label key={type} className="flex items-center gap-2 text-sm">
                     <input
                       type="checkbox"
-                      defaultChecked
+                      checked={resolvedFilters.source_types.includes(type)}
+                      onChange={(event) => toggleSourceType(type, event.currentTarget.checked)}
                       className="rounded border-border text-[#3FD6D0] focus:ring-[#3FD6D0]"
                     />
                     <span className="text-muted-foreground">{type}</span>
@@ -42,17 +87,38 @@ export function RightPanel() {
 
             <div className="space-y-2">
               <label className="text-xs text-foreground">Min Confidence</label>
-              <input type="range" min="0" max="100" defaultValue="70" className="w-full accent-[#3FD6D0]" />
-              <div className="font-mono text-xs text-muted-foreground">70%</div>
+              <input
+                type="range"
+                min="0"
+                max="100"
+                value={resolvedFilters.min_confidence}
+                onChange={(event) =>
+                  setFilters({
+                    ...resolvedFilters,
+                    min_confidence: Number.parseInt(event.currentTarget.value, 10),
+                  })
+                }
+                className="w-full accent-[#3FD6D0]"
+              />
+              <div className="font-mono text-xs text-muted-foreground">{resolvedFilters.min_confidence}%</div>
             </div>
 
             <div className="space-y-2">
               <label className="text-xs text-foreground">Account Age Filter</label>
-              <select className="w-full rounded border border-border bg-background px-3 py-2 text-sm">
-                <option>All accounts</option>
-                <option>30+ days only</option>
-                <option>90+ days only</option>
-                <option>1 year+ only</option>
+              <select
+                className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+                value={resolvedFilters.account_age_filter}
+                onChange={(event) =>
+                  setFilters({
+                    ...resolvedFilters,
+                    account_age_filter: event.currentTarget.value as AdvancedFilters['account_age_filter'],
+                  })
+                }
+              >
+                <option value="all">All accounts</option>
+                <option value="30d">30+ days only</option>
+                <option value="90d">90+ days only</option>
+                <option value="365d">1 year+ only</option>
               </select>
             </div>
           </div>
@@ -92,6 +158,7 @@ export function RightPanel() {
           <div className="border-t border-border pt-6">
             <button
               type="button"
+              onClick={() => setFilters(createDefaultAdvancedFilters())}
               className="w-full rounded border border-border bg-background px-4 py-2 text-sm transition-colors hover:border-[#3FD6D0]"
             >
               Reset to defaults

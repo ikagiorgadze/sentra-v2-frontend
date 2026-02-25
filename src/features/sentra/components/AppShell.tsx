@@ -13,7 +13,11 @@ import { ConversationPanel, type ChatBubble } from '@/features/sentra/components
 import { AuthPage } from '@/features/sentra/components/AuthPage';
 import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
 import { LandingPage } from '@/features/sentra/components/LandingPage';
-import { RightPanel } from '@/features/sentra/components/RightPanel';
+import {
+  createDefaultAdvancedFilters,
+  RightPanel,
+  type AdvancedFilters,
+} from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { AdminDemoPage } from '@/features/sentra/components/AdminDemoPage';
@@ -128,6 +132,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     return initialView;
   });
   const [state, setState] = useState<AppState>('idle');
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(() => createDefaultAdvancedFilters());
   const [runningStatusLabel, setRunningStatusLabel] = useState('queued');
   const [runningWarning, setRunningWarning] = useState<string | null>(null);
   const [query, setQuery] = useState('');
@@ -389,6 +394,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       const confirmed = await confirmConversationJob(conversationId, {
         proposalVersion: pendingProposal.version,
         idempotencyKey: crypto.randomUUID(),
+        collectionPlanOverrides: advancedFilters,
       });
       setActiveJobId(confirmed.job_id);
       setRunningStatusLabel(confirmed.status);
@@ -581,7 +587,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
         {state === 'results' && <IntelligenceBrief query={query} jobId={currentJobId} />}
       </div>
 
-      <RightPanel />
+      <RightPanel filters={advancedFilters} onChange={setAdvancedFilters} />
     </div>
   );
 }
