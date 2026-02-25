@@ -23,7 +23,11 @@ import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { AdminDemoPage } from '@/features/sentra/components/AdminDemoPage';
 import { getTokenRole, isTokenUnexpired } from '@/features/sentra/auth/tokenClaims';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
-import type { ConversationMessageRecord, ConversationProposalRecord } from '@/features/sentra/types/conversation';
+import type {
+  ConversationMessageRecord,
+  ConversationProposalRecord,
+  ConversationState,
+} from '@/features/sentra/types/conversation';
 import { AppState, AppView, RecentChat } from '@/features/sentra/types';
 import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
 
@@ -82,6 +86,19 @@ function isAuthPath(pathname: string): boolean {
 
 function conversationStateLabel(state: string): string {
   return state.replaceAll('_', ' ');
+}
+
+function deriveSnapshotAppState(
+  conversationState: ConversationState,
+  activeJobId: string | null | undefined,
+): AppState {
+  if (conversationState === 'completed') {
+    return activeJobId ? 'results' : 'idle';
+  }
+  if (conversationState === 'monitoring' || conversationState === 'job_created') {
+    return activeJobId ? 'running' : 'idle';
+  }
+  return 'idle';
 }
 
 function deriveConversationTitle(title: string | null, fallback: string): string {
@@ -441,15 +458,22 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       setPendingProposal(snapshot.pending_proposal ?? null);
       setQuery(snapshot.pending_proposal?.normalized_query ?? lastUserMessage?.content ?? '');
 
-      if (snapshot.active_job_id) {
+      const nextAppState = deriveSnapshotAppState(snapshot.conversation.state, snapshot.active_job_id);
+      if (nextAppState === 'running') {
         setState('running');
         setRunningStatusLabel('running');
         setRunningWarning(null);
         setCurrentJobId(undefined);
         setActiveJobId(snapshot.active_job_id);
+      } else if (nextAppState === 'results' && snapshot.active_job_id) {
+        setState('results');
+        setRunningStatusLabel('completed');
+        setRunningWarning(null);
+        setActiveJobId(undefined);
+        setCurrentJobId(snapshot.active_job_id);
       } else {
         setState('idle');
-        setRunningStatusLabel('queued');
+        setRunningStatusLabel(snapshot.conversation.state === 'failed' ? 'failed' : 'queued');
         setRunningWarning(null);
         setCurrentJobId(undefined);
         setActiveJobId(undefined);
@@ -478,10 +502,11 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
           return;
         }
         consecutivePollErrors = 0;
-        setRunningStatusLabel(job.status);
+        const nextStatus = typeof job.status === 'string' ? job.status : 'running';
+        setRunningStatusLabel(nextStatus);
         setRunningWarning(null);
 
-        if (job.status === 'completed') {
+        if (nextStatus === 'completed') {
           setState('results');
           setCurrentJobId(activeJobId);
           setActiveJobId(undefined);
@@ -489,7 +514,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
           return;
         }
 
-        if (job.status === 'failed') {
+        if (nextStatus === 'failed') {
           setState('idle');
           setActiveJobId(undefined);
           setCurrentJobId(undefined);

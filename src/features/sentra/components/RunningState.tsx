@@ -6,7 +6,7 @@ interface RunningStateProps {
 }
 
 function formatStatusLabel(statusLabel: string): string {
-  return statusLabel.replaceAll('_', ' ');
+  return statusLabel ? statusLabel.replaceAll('_', ' ') : 'running';
 }
 
 export function RunningState({ statusLabel, warningMessage = null }: RunningStateProps) {
