@@ -15,6 +15,26 @@ export function ProposalConfirmationCard({
 }: ProposalConfirmationCardProps) {
   const filterEntries = Object.entries(proposal.filters_json ?? {});
 
+  const formatFilterValue = (value: unknown): string => {
+    if (value === null || value === undefined) {
+      return '—';
+    }
+    if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean' || typeof value === 'bigint') {
+      return String(value);
+    }
+    if (Array.isArray(value)) {
+      return value.map((item) => formatFilterValue(item)).join(', ');
+    }
+    if (typeof value === 'object') {
+      const entries = Object.entries(value as Record<string, unknown>);
+      if (entries.length === 0) {
+        return '{}';
+      }
+      return entries.map(([key, nestedValue]) => `${key}=${formatFilterValue(nestedValue)}`).join(', ');
+    }
+    return String(value);
+  };
+
   return (
     <div className="rounded-lg border border-[#3FD6D0]/30 bg-[#3FD6D0]/5 p-4">
       <div className="mb-2 text-xs uppercase tracking-wider text-[#3FD6D0]">Confirm Query</div>
@@ -24,7 +44,7 @@ export function ProposalConfirmationCard({
         <div className="mt-3 flex flex-wrap gap-2">
           {filterEntries.map(([key, value]) => (
             <span key={key} className="rounded border border-border/60 bg-card/60 px-2 py-1 text-xs text-muted-foreground">
-              {key}: {value}
+              {key}: {formatFilterValue(value)}
             </span>
           ))}
         </div>
