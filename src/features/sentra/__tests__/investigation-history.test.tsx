@@ -164,4 +164,157 @@ describe('investigation history', () => {
 
     expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
   });
+
+  it('shows completed/failed state badges consistently after selecting historical chat', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const completedConversationId = '10d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+    const failedConversationId = '20d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+    const completedJobId = 'a0c68e3c-4865-4dc8-b2e7-6ed39dbdc010';
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      const method = input instanceof Request ? input.method.toUpperCase() : 'GET';
+
+      if (url.endsWith('/v1/conversations') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: completedConversationId,
+                user_id: '11111111-1111-1111-1111-111111111111',
+                title: 'Completed investigation',
+                state: 'completed',
+                active_proposal_version: 1,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:05Z',
+              },
+              {
+                id: failedConversationId,
+                user_id: '11111111-1111-1111-1111-111111111111',
+                title: 'Failed investigation',
+                state: 'failed',
+                active_proposal_version: 1,
+                inserted_at: '2026-02-23T19:00:00Z',
+                updated_at: '2026-02-23T19:00:05Z',
+              },
+            ],
+            next_cursor: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.endsWith(`/v1/conversations/${completedConversationId}/snapshot`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: completedConversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: 'Completed investigation',
+              state: 'completed',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:05Z',
+            },
+            messages: [
+              {
+                id: 'first-user-message',
+                conversation_id: completedConversationId,
+                role: 'user',
+                content: 'Completed investigation',
+                tool_trace_ref: null,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:00Z',
+              },
+            ],
+            pending_proposal: null,
+            active_job_id: completedJobId,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.endsWith(`/v1/conversations/${failedConversationId}/snapshot`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: failedConversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: 'Failed investigation',
+              state: 'failed',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T19:00:00Z',
+              updated_at: '2026-02-23T19:00:05Z',
+            },
+            messages: [
+              {
+                id: 'failed-user-message',
+                conversation_id: failedConversationId,
+                role: 'assistant',
+                content: 'Last run failed.',
+                tool_trace_ref: null,
+                inserted_at: '2026-02-23T19:00:05Z',
+                updated_at: '2026-02-23T19:00:05Z',
+              },
+            ],
+            pending_proposal: null,
+            active_job_id: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${completedJobId}/overview`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: completedJobId,
+            total_mentions: 10,
+            sentiment_index: -10,
+            engagement_rate: 1.2,
+            dominant_theme: 'Economy',
+            summary: 'Summary text',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${completedJobId}/sentiment-overview`)) {
+        return new Response(
+          JSON.stringify({ job_id: completedJobId, positive: 2, neutral: 3, negative: 5 }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${completedJobId}/sentiment-timeseries`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: completedJobId,
+            items: [{ date: '2026-02-23', positive: 2, neutral: 3, negative: 5 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={1} />);
+
+    expect(await screen.findByRole('button', { name: /completed investigation/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /failed investigation/i })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /completed investigation/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /failed investigation/i }));
+    await waitFor(() => {
+      expect(screen.getByText(/last run failed\./i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/status:/i)).not.toBeInTheDocument();
+  });
 });

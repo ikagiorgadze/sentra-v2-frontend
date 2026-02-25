@@ -30,8 +30,9 @@ describe('query lifecycle', () => {
       const conversationId = '20d6f6d2-8105-4f20-8151-2bdadf7a9a31';
       const jobId = 'a0c68e3c-4865-4dc8-b2e7-6ed39dbdc001';
       let statusPollCount = 0;
+      let confirmPayload: Record<string, unknown> | null = null;
 
-      vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
         const url = String(input);
 
         if (url.endsWith('/v1/conversations')) {
@@ -85,6 +86,7 @@ describe('query lifecycle', () => {
         }
 
         if (url.includes(`/v1/conversations/${conversationId}/confirm-job`)) {
+          confirmPayload = JSON.parse(String(init?.body ?? '{}')) as Record<string, unknown>;
           return new Response(
             JSON.stringify({
               conversation_id: conversationId,
@@ -152,10 +154,16 @@ describe('query lifecycle', () => {
       await user.keyboard('{Enter}');
 
       expect(await screen.findByRole('button', { name: /confirm/i })).toBeInTheDocument();
+      await user.click(screen.getByRole('button', { name: /toggle filters panel/i }));
+      await user.click(screen.getByRole('checkbox', { name: /social media/i }));
 
       await user.click(screen.getByRole('button', { name: /confirm/i }));
 
-      expect(screen.getByText(/collecting public discourse/i)).toBeInTheDocument();
+      const collectionPlanOverrides = (confirmPayload?.collection_plan_overrides ?? {}) as {
+        source_types?: string[];
+      };
+      expect(collectionPlanOverrides.source_types).toContain('News Sites');
+      expect(collectionPlanOverrides.source_types).not.toContain('Social Media');
 
       await waitFor(() => {
         expect(screen.getByText(/executive summary/i)).toBeInTheDocument();

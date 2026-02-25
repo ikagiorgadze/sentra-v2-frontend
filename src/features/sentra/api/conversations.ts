@@ -110,6 +110,7 @@ export async function confirmConversationJob(
     body: JSON.stringify({
       proposal_version: payload.proposalVersion,
       idempotency_key: payload.idempotencyKey,
+      collection_plan_overrides: payload.collectionPlanOverrides ?? {},
     }),
   });
 

@@ -38,4 +38,9 @@ describe('AuthPage backend auth', () => {
       expect(onAuthenticated).toHaveBeenCalled();
     });
   });
+
+  it('does not render unsupported forgot-password control', () => {
+    render(<AuthPage onAuthenticate={vi.fn()} />);
+    expect(screen.queryByText(/forgot password/i)).not.toBeInTheDocument();
+  });
 });

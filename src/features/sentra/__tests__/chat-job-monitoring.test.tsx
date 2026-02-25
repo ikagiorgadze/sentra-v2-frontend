@@ -20,7 +20,7 @@ function makeToken(expOffsetSeconds: number): string {
 }
 
 describe('chat job monitoring', () => {
-  it('after confirm, polls job status and transitions to results', async () => {
+  it('renders backend-derived status text and no synthetic metric counters', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
     const user = userEvent.setup();
@@ -96,7 +96,7 @@ describe('chat job monitoring', () => {
 
       if (url.includes(`/v1/jobs/${jobId}`)) {
         statusPollCount += 1;
-        const status = statusPollCount >= 2 ? 'completed' : 'running';
+        const status = statusPollCount >= 3 ? 'completed' : 'running';
         return new Response(
           JSON.stringify({
             id: jobId,
@@ -150,7 +150,8 @@ describe('chat job monitoring', () => {
     await user.keyboard('{Enter}');
     await user.click(await screen.findByRole('button', { name: /confirm/i }));
 
-    expect(screen.getByText(/collecting public discourse/i)).toBeInTheDocument();
+    expect(await screen.findByText(/status: running/i)).toBeInTheDocument();
+    expect(screen.queryByText(/Posts Collected/i)).not.toBeInTheDocument();
 
     await waitFor(
       () => {
@@ -158,5 +159,97 @@ describe('chat job monitoring', () => {
       },
       { timeout: 4000 },
     );
+  });
+
+  it('shows connectivity warning after repeated poll failures', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const conversationId = '20d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+    const jobId = '120d6e13-9f74-42bb-9fff-395a7f4f5f00';
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+
+      if (url.endsWith('/v1/conversations')) {
+        return new Response(
+          JSON.stringify({
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-23T20:00:00Z',
+            updated_at: '2026-02-23T20:00:00Z',
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/messages`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: conversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: null,
+              state: 'awaiting_confirmation',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:00Z',
+            },
+            assistant_message: {
+              id: '3b15995c-fcbf-4d84-966d-eecf4e5393ac',
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: 'Please confirm this query before I create the job.',
+              inserted_at: '2026-02-23T20:00:01Z',
+              updated_at: '2026-02-23T20:00:01Z',
+            },
+            pending_proposal: {
+              id: 'b8f80a2a-5662-4268-a4b7-9886f7262dcf',
+              conversation_id: conversationId,
+              version: 1,
+              normalized_query: 'Sentiment around pension reform in Romania last 7 days',
+              filters_json: { country: 'Romania', time_range: '7d' },
+              status: 'pending',
+              inserted_at: '2026-02-23T20:00:01Z',
+              updated_at: '2026-02-23T20:00:01Z',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/confirm-job`)) {
+        return new Response(
+          JSON.stringify({
+            conversation_id: conversationId,
+            proposal_id: 'b8f80a2a-5662-4268-a4b7-9886f7262dcf',
+            job_id: jobId,
+            status: 'queued',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${jobId}`)) {
+        return new Response(
+          JSON.stringify({ detail: 'network outage' }),
+          { status: 503, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Track pension reform sentiment in Romania for the last 7 days');
+    await user.keyboard('{Enter}');
+    await user.click(await screen.findByRole('button', { name: /confirm/i }));
+
+    expect(await screen.findByText(/temporarily unreachable/i)).toBeInTheDocument();
   });
 });

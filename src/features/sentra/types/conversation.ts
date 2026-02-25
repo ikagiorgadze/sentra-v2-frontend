@@ -70,6 +70,7 @@ export interface ConfirmConversationJobRecord {
 export interface ConfirmConversationJobInput {
   proposalVersion: number;
   idempotencyKey: string;
+  collectionPlanOverrides?: Record<string, unknown>;
 }
 
 export type ConversationStreamEventType =

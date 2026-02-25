@@ -84,21 +84,6 @@ export function AuthPage({ onAuthenticate }: AuthPageProps) {
 
           {errorMessage ? <p className="text-sm text-red-400">{errorMessage}</p> : null}
 
-          {isLogin && (
-            <div className="flex items-center justify-between text-sm">
-              <label className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  className="rounded border-border text-[#3FD6D0] focus:ring-[#3FD6D0]"
-                />
-                <span className="text-muted-foreground">Remember me</span>
-              </label>
-              <button type="button" className="text-[#3FD6D0] hover:underline">
-                Forgot password?
-              </button>
-            </div>
-          )}
-
           <button
             type="submit"
             className="w-full rounded-lg bg-[#3FD6D0] px-4 py-3 text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90"

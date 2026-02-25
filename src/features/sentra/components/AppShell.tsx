@@ -13,13 +13,21 @@ import { ConversationPanel, type ChatBubble } from '@/features/sentra/components
 import { AuthPage } from '@/features/sentra/components/AuthPage';
 import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
 import { LandingPage } from '@/features/sentra/components/LandingPage';
-import { RightPanel } from '@/features/sentra/components/RightPanel';
+import {
+  createDefaultAdvancedFilters,
+  RightPanel,
+  type AdvancedFilters,
+} from '@/features/sentra/components/RightPanel';
 import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { AdminDemoPage } from '@/features/sentra/components/AdminDemoPage';
 import { getTokenRole, isTokenUnexpired } from '@/features/sentra/auth/tokenClaims';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
-import type { ConversationMessageRecord, ConversationProposalRecord } from '@/features/sentra/types/conversation';
+import type {
+  ConversationMessageRecord,
+  ConversationProposalRecord,
+  ConversationState,
+} from '@/features/sentra/types/conversation';
 import { AppState, AppView, RecentChat } from '@/features/sentra/types';
 import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
 
@@ -80,6 +88,19 @@ function conversationStateLabel(state: string): string {
   return state.replaceAll('_', ' ');
 }
 
+function deriveSnapshotAppState(
+  conversationState: ConversationState,
+  activeJobId: string | null | undefined,
+): AppState {
+  if (conversationState === 'completed') {
+    return activeJobId ? 'results' : 'idle';
+  }
+  if (conversationState === 'monitoring' || conversationState === 'job_created') {
+    return activeJobId ? 'running' : 'idle';
+  }
+  return 'idle';
+}
+
 function deriveConversationTitle(title: string | null, fallback: string): string {
   const normalized = title?.trim();
   if (normalized) {
@@ -128,6 +149,9 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     return initialView;
   });
   const [state, setState] = useState<AppState>('idle');
+  const [advancedFilters, setAdvancedFilters] = useState<AdvancedFilters>(() => createDefaultAdvancedFilters());
+  const [runningStatusLabel, setRunningStatusLabel] = useState('queued');
+  const [runningWarning, setRunningWarning] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [recentChats, setRecentChats] = useState<RecentChat[]>([]);
   const [currentChatId, setCurrentChatId] = useState<string | undefined>();
@@ -377,6 +401,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
 
     setIsConfirmingProposal(true);
     setState('running');
+    setRunningStatusLabel('queued');
+    setRunningWarning(null);
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
     setQuery(pendingProposal.normalized_query);
@@ -385,8 +411,10 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       const confirmed = await confirmConversationJob(conversationId, {
         proposalVersion: pendingProposal.version,
         idempotencyKey: crypto.randomUUID(),
+        collectionPlanOverrides: advancedFilters,
       });
       setActiveJobId(confirmed.job_id);
+      setRunningStatusLabel(confirmed.status);
       setPendingProposal(null);
       setChatMessages((prev) => [...prev, assistantBubble('Confirmed. Creating your monitoring job now.')]);
       void refreshRecentChats();
@@ -413,6 +441,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     setCurrentChatId(undefined);
     setActiveJobId(undefined);
     setCurrentJobId(undefined);
+    setRunningStatusLabel('queued');
+    setRunningWarning(null);
     setConversationId(undefined);
     setPendingProposal(null);
     setChatMessages([]);
@@ -428,12 +458,23 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       setPendingProposal(snapshot.pending_proposal ?? null);
       setQuery(snapshot.pending_proposal?.normalized_query ?? lastUserMessage?.content ?? '');
 
-      if (snapshot.active_job_id) {
+      const nextAppState = deriveSnapshotAppState(snapshot.conversation.state, snapshot.active_job_id);
+      if (nextAppState === 'running') {
         setState('running');
+        setRunningStatusLabel('running');
+        setRunningWarning(null);
         setCurrentJobId(undefined);
         setActiveJobId(snapshot.active_job_id);
+      } else if (nextAppState === 'results' && snapshot.active_job_id) {
+        setState('results');
+        setRunningStatusLabel('completed');
+        setRunningWarning(null);
+        setActiveJobId(undefined);
+        setCurrentJobId(snapshot.active_job_id);
       } else {
         setState('idle');
+        setRunningStatusLabel(snapshot.conversation.state === 'failed' ? 'failed' : 'queued');
+        setRunningWarning(null);
         setCurrentJobId(undefined);
         setActiveJobId(undefined);
       }
@@ -452,6 +493,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
 
     let isCancelled = false;
     let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let consecutivePollErrors = 0;
 
     const poll = async () => {
       try {
@@ -459,8 +501,12 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
         if (isCancelled) {
           return;
         }
+        consecutivePollErrors = 0;
+        const nextStatus = typeof job.status === 'string' ? job.status : 'running';
+        setRunningStatusLabel(nextStatus);
+        setRunningWarning(null);
 
-        if (job.status === 'completed') {
+        if (nextStatus === 'completed') {
           setState('results');
           setCurrentJobId(activeJobId);
           setActiveJobId(undefined);
@@ -468,15 +514,29 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
           return;
         }
 
-        if (job.status === 'failed') {
+        if (nextStatus === 'failed') {
           setState('idle');
           setActiveJobId(undefined);
           setCurrentJobId(undefined);
-          setChatMessages((prev) => [...prev, assistantBubble('The job failed. You can edit and confirm a new query.')]);
+          setRunningWarning(null);
+          const detail = job.error_message?.trim() || 'The job failed.';
+          setChatMessages((prev) => [
+            ...prev,
+            assistantBubble(`${detail} You can edit and confirm a new query.`),
+          ]);
           return;
         }
       } catch {
-        // Keep polling when backend is temporarily unavailable.
+        consecutivePollErrors += 1;
+        if (consecutivePollErrors >= 5) {
+          const warning = 'Job status is temporarily unreachable. Retrying...';
+          setRunningWarning(warning);
+          setChatMessages((prev) => [
+            ...prev,
+            assistantBubble(warning),
+          ]);
+          consecutivePollErrors = 0;
+        }
       }
 
       timeoutId = setTimeout(poll, processingDelayMs);
@@ -548,11 +608,11 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
             showAssistantTyping={isSendingMessage && isAwaitingFirstToken}
           />
         )}
-        {state === 'running' && <RunningState />}
+        {state === 'running' && <RunningState statusLabel={runningStatusLabel} warningMessage={runningWarning} />}
         {state === 'results' && <IntelligenceBrief query={query} jobId={currentJobId} />}
       </div>
 
-      <RightPanel />
+      <RightPanel filters={advancedFilters} onChange={setAdvancedFilters} />
     </div>
   );
 }
