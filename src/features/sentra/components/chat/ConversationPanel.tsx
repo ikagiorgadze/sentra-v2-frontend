@@ -14,7 +14,8 @@ interface ConversationPanelProps {
   messages: ChatBubble[];
   pendingProposal: ConversationProposalRecord | null;
   onSend: (message: string) => Promise<void> | void;
-  onConfirmProposal: () => Promise<void> | void;
+  onStartNewProposal: () => Promise<void> | void;
+  onUseExistingProposal: (jobId: string) => Promise<void> | void;
   onEditProposal: () => void;
   disabled?: boolean;
   showAssistantTyping?: boolean;
@@ -25,7 +26,8 @@ export function ConversationPanel({
   messages,
   pendingProposal,
   onSend,
-  onConfirmProposal,
+  onStartNewProposal,
+  onUseExistingProposal,
   onEditProposal,
   disabled = false,
   showAssistantTyping = false,
@@ -74,7 +76,8 @@ export function ConversationPanel({
           {pendingProposal && (
             <ProposalConfirmationCard
               proposal={pendingProposal}
-              onConfirm={onConfirmProposal}
+              onStartNew={onStartNewProposal}
+              onUseExisting={onUseExistingProposal}
               onEdit={onEditProposal}
               disabled={disabled}
             />

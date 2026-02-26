@@ -39,21 +39,22 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
       {
         type: 'assistant_stream',
         content:
-          'Perfect. Final clarification before I draft the query: confirm geographic scope as Georgia only, and whether we should focus specifically on campaign effectiveness signals such as engagement quality, message resonance, and sentiment shifts.',
+          'Thanks. Before I draft the query, I want to clarify exactly which AlphaInsure campaign you are hinting at so we measure the right activity. What is the exact campaign name, and should we keep scope to Georgia only?',
       },
       {
         type: 'user_message',
-        content: 'Yes, Georgia only, and yes focus on campaign effectiveness signals.',
+        content:
+          'The campaign name is "everybody makes mistakes". Yes, Georgia only, and focus on campaign effectiveness signals.',
       },
       {
         type: 'assistant_stream',
         content:
-          'Understood. I can now propose a monitoring query that tracks AlphaInsure Georgia campaign performance in Georgia over the last 30 days across Facebook and Instagram.',
+          'Understood. I can now propose a monitoring query that tracks AlphaInsure Georgia campaign "everybody makes mistakes" in Georgia over the last 30 days across Facebook and Instagram, with measurements for engagement quality, message resonance, and sentiment shifts for that campaign.',
       },
       {
         type: 'proposal_ready',
         normalizedQuery:
-          'Monitor AlphaInsure Georgia marketing campaign performance in Georgia over the last 30 days across Facebook and Instagram, focusing on engagement quality, message resonance, and audience sentiment shifts',
+          'Monitor AlphaInsure Georgia marketing campaign "everybody makes mistakes" performance in Georgia over the last 30 days across Facebook and Instagram, focusing on campaign-level engagement quality, message resonance, and audience sentiment shifts',
         filters: {
           country: 'Georgia',
           channels: ['facebook', 'instagram'],
@@ -62,7 +63,7 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
         },
         collectionPlan: {
           sources: ['facebook_posts', 'facebook_comments', 'instagram_posts', 'instagram_comments'],
-          entities: ['AlphaInsure Georgia'],
+          entities: ['AlphaInsure Georgia', 'everybody makes mistakes'],
           intents: ['campaign_effectiveness', 'engagement_quality', 'message_resonance', 'sentiment_shift'],
         },
       },
@@ -71,9 +72,9 @@ export const DEMO_SCENARIOS: DemoScenario[] = [
     ],
     analysisPayload: {
       query:
-        'AlphaInsure Georgia campaign performance in Georgia across Facebook and Instagram (last 30 days)',
+        'AlphaInsure Georgia "everybody makes mistakes" campaign performance in Georgia across Facebook and Instagram (last 30 days)',
       summary:
-        'AlphaInsure Georgia achieved high visibility in Tbilisi and Batumi with strongest engagement on family-coverage creatives. Positive sentiment clustered around perceived affordability and clarity of messaging, while negative sentiment focused on claim-response credibility and trust concerns.',
+        'The AlphaInsure Georgia "everybody makes mistakes" campaign achieved high visibility in Tbilisi and Batumi with strongest engagement on family-coverage creatives. Positive sentiment clustered around perceived affordability and clarity of messaging, while negative sentiment focused on claim-response credibility and trust concerns.',
       sentimentOverview: { positive: 41, neutral: 24, negative: 35 },
       sentimentTimeseries: [
         { date: '2026-01-25', positive: 29, neutral: 27, negative: 44 },

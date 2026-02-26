@@ -2,18 +2,23 @@ import type { ConversationProposalRecord } from '@/features/sentra/types/convers
 
 interface ProposalConfirmationCardProps {
   proposal: ConversationProposalRecord;
-  onConfirm: () => Promise<void> | void;
+  onStartNew: () => Promise<void> | void;
+  onUseExisting: (jobId: string) => Promise<void> | void;
   onEdit: () => void;
   disabled?: boolean;
 }
 
 export function ProposalConfirmationCard({
   proposal,
-  onConfirm,
+  onStartNew,
+  onUseExisting,
   onEdit,
   disabled = false,
 }: ProposalConfirmationCardProps) {
-  const filterEntries = Object.entries(proposal.filters_json ?? {});
+  const filterEntries = Object.entries(proposal.filters_json ?? {}).filter(([key]) => key !== 'reuse_requested');
+  const reuseCandidates = proposal.reuse_candidates ?? [];
+  const reuseRequested = proposal.filters_json?.reuse_requested === true;
+  const shouldShowReuseChoices = reuseRequested && reuseCandidates.length > 0;
 
   const formatFilterValue = (value: unknown): string => {
     if (value === null || value === undefined) {
@@ -50,24 +55,67 @@ export function ProposalConfirmationCard({
         </div>
       )}
 
-      <div className="mt-4 flex gap-2">
-        <button
-          type="button"
-          onClick={() => void onConfirm()}
-          disabled={disabled}
-          className="rounded bg-[#3FD6D0] px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-[#72E4DF] disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Confirm
-        </button>
-        <button
-          type="button"
-          onClick={onEdit}
-          disabled={disabled}
-          className="rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
-        >
-          Edit
-        </button>
-      </div>
+      {shouldShowReuseChoices ? (
+        <>
+          <div className="mt-4 text-xs uppercase tracking-wider text-[#3FD6D0]">Similar Completed Jobs</div>
+          <div className="mt-2 space-y-2">
+            {reuseCandidates.map((candidate) => (
+              <div key={candidate.job_id} className="rounded border border-border/60 bg-card/60 p-3">
+                <p className="text-xs text-foreground">{candidate.query}</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Match: {Math.round(candidate.similarity_score * 100)}%
+                </p>
+                <button
+                  type="button"
+                  onClick={() => void onUseExisting(candidate.job_id)}
+                  disabled={disabled}
+                  className="mt-2 rounded bg-[#3FD6D0] px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-[#72E4DF] disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Use Existing
+                </button>
+              </div>
+            ))}
+          </div>
+
+          <div className="mt-4 flex gap-2">
+            <button
+              type="button"
+              onClick={() => void onStartNew()}
+              disabled={disabled}
+              className="rounded bg-[#3FD6D0] px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-[#72E4DF] disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Start New
+            </button>
+            <button
+              type="button"
+              onClick={onEdit}
+              disabled={disabled}
+              className="rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Edit
+            </button>
+          </div>
+        </>
+      ) : (
+        <div className="mt-4 flex gap-2">
+          <button
+            type="button"
+            onClick={() => void onStartNew()}
+            disabled={disabled}
+            className="rounded bg-[#3FD6D0] px-3 py-1.5 text-xs font-medium text-black transition-colors hover:bg-[#72E4DF] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Confirm
+          </button>
+          <button
+            type="button"
+            onClick={onEdit}
+            disabled={disabled}
+            className="rounded border border-border px-3 py-1.5 text-xs text-foreground transition-colors hover:bg-card disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Edit
+          </button>
+        </div>
+      )}
     </div>
   );
 }

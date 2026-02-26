@@ -33,9 +33,17 @@ export interface ConversationProposalRecord {
   normalized_query: string;
   filters_json?: Record<string, unknown> | null;
   collection_plan?: Record<string, unknown> | null;
+  reuse_candidates?: ReuseCandidateRecord[] | null;
   status: 'pending' | 'confirmed' | 'superseded';
   inserted_at: string;
   updated_at: string;
+}
+
+export interface ReuseCandidateRecord {
+  job_id: string;
+  query: string;
+  updated_at: string;
+  similarity_score: number;
 }
 
 export interface ClarificationRecord {
@@ -70,6 +78,8 @@ export interface ConfirmConversationJobRecord {
 export interface ConfirmConversationJobInput {
   proposalVersion: number;
   idempotencyKey: string;
+  action?: 'startNew' | 'useExisting';
+  selectedJobId?: string;
   collectionPlanOverrides?: Record<string, unknown>;
 }
 

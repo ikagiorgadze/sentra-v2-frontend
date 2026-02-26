@@ -317,4 +317,95 @@ describe('investigation history', () => {
     });
     expect(screen.queryByText(/status:/i)).not.toBeInTheDocument();
   });
+
+  it('restores pending reuse decision choices from snapshot payload', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const conversationId = '30d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+    const existingJobId = 'b0c68e3c-4865-4dc8-b2e7-6ed39dbdc111';
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      const method = input instanceof Request ? input.method.toUpperCase() : 'GET';
+
+      if (url.endsWith('/v1/conversations') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: conversationId,
+                user_id: '11111111-1111-1111-1111-111111111111',
+                title: 'Reuse option pending',
+                state: 'awaiting_confirmation',
+                active_proposal_version: 1,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:05Z',
+              },
+            ],
+            next_cursor: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.endsWith(`/v1/conversations/${conversationId}/snapshot`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: conversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: 'Reuse option pending',
+              state: 'awaiting_confirmation',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:05Z',
+            },
+            messages: [
+              {
+                id: 'first-user-message',
+                conversation_id: conversationId,
+                role: 'user',
+                content: 'Pension reform Romania',
+                tool_trace_ref: null,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:00Z',
+              },
+            ],
+            pending_proposal: {
+              id: 'b8f80a2a-5662-4268-a4b7-9886f7262dcf',
+              conversation_id: conversationId,
+              version: 1,
+              normalized_query: 'Sentiment around pension reform in Romania last 7 days',
+              filters_json: { country: 'Romania', time_range: '7d', reuse_requested: true },
+              reuse_candidates: [
+                {
+                  job_id: existingJobId,
+                  query: 'Sentiment around pension reform in Romania last 7 days',
+                  updated_at: '2026-02-23T20:00:00Z',
+                  similarity_score: 0.97,
+                },
+              ],
+              status: 'pending',
+              inserted_at: '2026-02-23T20:00:01Z',
+              updated_at: '2026-02-23T20:00:01Z',
+            },
+            active_job_id: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={1} />);
+    await user.click(await screen.findByRole('button', { name: /reuse option pending.*awaiting confirmation/i }));
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /use existing/i })).toBeInTheDocument();
+    });
+    expect(screen.getByRole('button', { name: /start new/i })).toBeInTheDocument();
+  });
 });

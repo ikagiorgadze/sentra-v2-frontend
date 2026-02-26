@@ -10,7 +10,8 @@ describe('conversation panel typing indicator', () => {
         messages={[]}
         pendingProposal={null}
         onSend={() => {}}
-        onConfirmProposal={() => {}}
+        onStartNewProposal={() => {}}
+        onUseExistingProposal={() => {}}
         onEditProposal={() => {}}
         showAssistantTyping
       />,

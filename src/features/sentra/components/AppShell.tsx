@@ -430,6 +430,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       const confirmed = await confirmConversationJob(conversationId, {
         proposalVersion: pendingProposal.version,
         idempotencyKey: crypto.randomUUID(),
+        action: 'startNew',
         collectionPlanOverrides: advancedFilters,
       });
       setActiveJobId(confirmed.job_id);
@@ -442,6 +443,48 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       setChatMessages((prev) => [
         ...prev,
         assistantBubble(resolveErrorMessage(error, 'I could not create the job from that confirmation. Please try again.')),
+      ]);
+    } finally {
+      setIsConfirmingProposal(false);
+    }
+  };
+
+  const handleUseExistingProposal = async (selectedJobId: string) => {
+    if (!conversationId || !pendingProposal) {
+      return;
+    }
+
+    setIsConfirmingProposal(true);
+    setRunningWarning(null);
+    setQuery(pendingProposal.normalized_query);
+
+    try {
+      const confirmed = await confirmConversationJob(conversationId, {
+        proposalVersion: pendingProposal.version,
+        idempotencyKey: crypto.randomUUID(),
+        action: 'useExisting',
+        selectedJobId,
+      });
+      setPendingProposal(null);
+      setActiveJobId(undefined);
+      setRunningStatusLabel(confirmed.status);
+      if (confirmed.status === 'completed') {
+        setState('results');
+        setCurrentJobId(confirmed.job_id);
+        setChatMessages((prev) => [...prev, assistantBubble('Using the existing completed job from your history.')]);
+      } else {
+        setState('running');
+        setCurrentJobId(undefined);
+        setActiveJobId(confirmed.job_id);
+      }
+      void refreshRecentChats();
+    } catch (error) {
+      setState('idle');
+      setChatMessages((prev) => [
+        ...prev,
+        assistantBubble(
+          resolveErrorMessage(error, 'I could not reuse that completed job. Please choose another option.'),
+        ),
       ]);
     } finally {
       setIsConfirmingProposal(false);
@@ -630,7 +673,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
             messages={chatMessages}
             pendingProposal={pendingProposal}
             onSend={handleSendMessage}
-            onConfirmProposal={handleConfirmProposal}
+            onStartNewProposal={handleConfirmProposal}
+            onUseExistingProposal={handleUseExistingProposal}
             onEditProposal={handleEditProposal}
             disabled={isSendingMessage || isConfirmingProposal}
             showAssistantTyping={isSendingMessage && isAwaitingFirstToken}

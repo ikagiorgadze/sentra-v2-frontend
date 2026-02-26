@@ -111,6 +111,32 @@ describe('conversations api', () => {
     );
   });
 
+  it('sends use_existing confirm action payload when selecting a completed job', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          conversation_id: '20d6f6d2-8105-4f20-8151-2bdadf7a9a31',
+          proposal_id: 'b8f80a2a-5662-4268-a4b7-9886f7262dcf',
+          job_id: '120d6e13-9f74-42bb-9fff-395a7f4f5f00',
+          status: 'completed',
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    await confirmConversationJob('20d6f6d2-8105-4f20-8151-2bdadf7a9a31', {
+      proposalVersion: 1,
+      idempotencyKey: 'idemp-2',
+      action: 'useExisting',
+      selectedJobId: '120d6e13-9f74-42bb-9fff-395a7f4f5f00',
+    });
+
+    const request = fetchMock.mock.calls[0]?.[1];
+    const sentBody = JSON.parse(String(request?.body ?? '{}')) as Record<string, unknown>;
+    expect(sentBody.action).toBe('use_existing');
+    expect(sentBody.selected_job_id).toBe('120d6e13-9f74-42bb-9fff-395a7f4f5f00');
+  });
+
   it('throws backend detail when posting a message fails', async () => {
     vi.spyOn(global, 'fetch').mockResolvedValue(
       new Response(JSON.stringify({ detail: 'provider timeout' }), {

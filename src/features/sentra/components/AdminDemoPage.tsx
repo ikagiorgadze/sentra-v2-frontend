@@ -102,7 +102,8 @@ export function AdminDemoPage({ scenarios }: AdminDemoPageProps) {
             messages={controller.messages}
             pendingProposal={controller.pendingProposal}
             onSend={() => undefined}
-            onConfirmProposal={controller.confirmProposal}
+            onStartNewProposal={controller.confirmProposal}
+            onUseExistingProposal={() => undefined}
             onEditProposal={() => undefined}
             hideComposer
           />

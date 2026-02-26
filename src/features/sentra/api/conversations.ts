@@ -105,11 +105,14 @@ export async function confirmConversationJob(
   conversationId: string,
   payload: ConfirmConversationJobInput,
 ): Promise<ConfirmConversationJobRecord> {
+  const action = payload.action === 'useExisting' ? 'use_existing' : 'start_new';
   const response = await apiFetch(`/v1/conversations/${conversationId}/confirm-job`, {
     method: 'POST',
     body: JSON.stringify({
       proposal_version: payload.proposalVersion,
       idempotency_key: payload.idempotencyKey,
+      action,
+      selected_job_id: payload.selectedJobId ?? null,
       collection_plan_overrides: payload.collectionPlanOverrides ?? {},
     }),
   });

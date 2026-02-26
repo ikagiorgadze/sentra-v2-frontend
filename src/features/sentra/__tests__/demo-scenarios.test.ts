@@ -11,4 +11,19 @@ describe('demo scenarios', () => {
       expect(scenario.analysisPayload).toBeDefined();
     }
   });
+
+  it('ensures AlphaInsure scenario captures the insurance campaign name and campaign-specific measurements', () => {
+    const alphaScenario = DEMO_SCENARIOS.find((scenario) => scenario.id === 'insurance-rival-campaign-georgia');
+    expect(alphaScenario).toBeDefined();
+
+    const scriptText = alphaScenario!.script
+      .map((step) => ('content' in step ? step.content : 'normalizedQuery' in step ? step.normalizedQuery : ''))
+      .join(' ');
+
+    expect(scriptText).toContain('everybody makes mistakes');
+    expect(scriptText.toLowerCase()).toContain('campaign');
+    expect(scriptText.toLowerCase()).toContain('name');
+    expect(alphaScenario!.analysisPayload.query).toContain('everybody makes mistakes');
+    expect(alphaScenario!.analysisPayload.summary).toContain('everybody makes mistakes');
+  });
 });
