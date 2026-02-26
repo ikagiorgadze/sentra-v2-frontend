@@ -324,6 +324,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
               if (event.event === 'clarification') {
                 const clarification = event.payload.clarification as { question?: string } | undefined;
                 const question = clarification?.question?.trim();
+                setPendingProposal(null);
                 if (question) {
                   setChatMessages((prev) =>
                     prev.map((item) => (item.id === draftBubbleId ? { ...item, content: question } : item)),
@@ -359,8 +360,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
                   );
                 }
                 const pending = (event.payload.proposal ?? null) as ConversationProposalRecord | null | undefined;
-                if (pending) {
-                  setPendingProposal(pending);
+                setPendingProposal(pending ?? null);
+                if (pending?.normalized_query) {
                   setQuery(pending.normalized_query);
                 }
                 return;
