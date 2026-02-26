@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   confirmConversationJob,
   createConversation,
+  deleteConversation,
   postConversationMessage,
 } from '@/features/sentra/api/conversations';
 
@@ -120,6 +121,29 @@ describe('conversations api', () => {
 
     await expect(postConversationMessage('20d6f6d2-8105-4f20-8151-2bdadf7a9a31', 'hello')).rejects.toThrow(
       'provider timeout',
+    );
+  });
+
+  it('deletes a conversation', async () => {
+    const fetchMock = vi.spyOn(global, 'fetch').mockResolvedValue(new Response(null, { status: 204 }));
+
+    await deleteConversation('20d6f6d2-8105-4f20-8151-2bdadf7a9a31');
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/v1/conversations/20d6f6d2-8105-4f20-8151-2bdadf7a9a31');
+    const request = fetchMock.mock.calls[0]?.[1];
+    expect(request?.method).toBe('DELETE');
+  });
+
+  it('throws backend detail when deleting a conversation fails', async () => {
+    vi.spyOn(global, 'fetch').mockResolvedValue(
+      new Response(JSON.stringify({ detail: 'conversation not found' }), {
+        status: 404,
+        headers: { 'Content-Type': 'application/json' },
+      }),
+    );
+
+    await expect(deleteConversation('20d6f6d2-8105-4f20-8151-2bdadf7a9a31')).rejects.toThrow(
+      'conversation not found',
     );
   });
 });

@@ -120,3 +120,13 @@ export async function confirmConversationJob(
 
   return (await response.json()) as ConfirmConversationJobRecord;
 }
+
+export async function deleteConversation(conversationId: string): Promise<void> {
+  const response = await apiFetch(`/v1/conversations/${conversationId}`, {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+}
