@@ -108,7 +108,7 @@ describe('recent chats hydration', () => {
       expect(screen.getByText(/awaiting confirmation/i)).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /romania pension sentiment/i }));
+    await user.click(screen.getByRole('button', { name: /awaiting confirmation/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/please confirm this query/i)).toBeInTheDocument();

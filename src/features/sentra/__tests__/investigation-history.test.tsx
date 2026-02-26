@@ -151,16 +151,16 @@ describe('investigation history', () => {
     });
 
     render(<AppShell initialView="app" processingDelayMs={1} />);
-    await user.click(await screen.findByRole('button', { name: /pension reform romania/i }));
+    await user.click(await screen.findByRole('button', { name: /pension reform romania.*monitoring/i }));
 
     await waitFor(() => {
       expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
     }, { timeout: 4000 });
 
-    expect(screen.getByRole('button', { name: /pension reform romania/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /pension reform romania.*monitoring/i })).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /new investigation/i }));
-    await user.click(screen.getByRole('button', { name: /pension reform romania/i }));
+    await user.click(screen.getByRole('button', { name: /pension reform romania.*monitoring/i }));
 
     expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
   });
@@ -303,15 +303,15 @@ describe('investigation history', () => {
 
     render(<AppShell initialView="app" processingDelayMs={1} />);
 
-    expect(await screen.findByRole('button', { name: /completed investigation/i })).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: /failed investigation/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /completed investigation.*completed/i })).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /failed investigation.*failed/i })).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /completed investigation/i }));
+    await user.click(screen.getByRole('button', { name: /completed investigation.*completed/i }));
     await waitFor(() => {
       expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
     });
 
-    await user.click(screen.getByRole('button', { name: /failed investigation/i }));
+    await user.click(screen.getByRole('button', { name: /failed investigation.*failed/i }));
     await waitFor(() => {
       expect(screen.getByText(/last run failed\./i)).toBeInTheDocument();
     });

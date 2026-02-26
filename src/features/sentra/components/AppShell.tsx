@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import {
   confirmConversationJob,
   createConversation,
+  deleteConversation,
   getConversationSnapshot,
   listConversations,
   postConversationMessage,
@@ -163,6 +164,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   const [isSendingMessage, setIsSendingMessage] = useState(false);
   const [isAwaitingFirstToken, setIsAwaitingFirstToken] = useState(false);
   const [isConfirmingProposal, setIsConfirmingProposal] = useState(false);
+  const [isDeletingChatId, setIsDeletingChatId] = useState<string | null>(null);
   const [recentChatsError, setRecentChatsError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -262,6 +264,20 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   const handleOpenDemo = () => {
     syncPath('/admin/demo');
   };
+
+  const resetToNewInvestigation = useCallback(() => {
+    syncPath('/chat');
+    setState('idle');
+    setQuery('');
+    setCurrentChatId(undefined);
+    setActiveJobId(undefined);
+    setCurrentJobId(undefined);
+    setRunningStatusLabel('queued');
+    setRunningWarning(null);
+    setConversationId(undefined);
+    setPendingProposal(null);
+    setChatMessages([]);
+  }, []);
 
   const handleSendMessage = async (message: string) => {
     setIsSendingMessage(true);
@@ -435,17 +451,24 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   };
 
   const handleNewInvestigation = () => {
-    syncPath('/chat');
-    setState('idle');
-    setQuery('');
-    setCurrentChatId(undefined);
-    setActiveJobId(undefined);
-    setCurrentJobId(undefined);
-    setRunningStatusLabel('queued');
-    setRunningWarning(null);
-    setConversationId(undefined);
-    setPendingProposal(null);
-    setChatMessages([]);
+    resetToNewInvestigation();
+  };
+
+  const handleDeleteChat = async (id: string) => {
+    setIsDeletingChatId(id);
+    try {
+      await deleteConversation(id);
+      setRecentChatsError(null);
+      setRecentChats((prev) => prev.filter((chat) => chat.id !== id));
+      if (currentChatId === id) {
+        resetToNewInvestigation();
+      }
+      await refreshRecentChats();
+    } catch (error) {
+      setRecentChatsError(resolveErrorMessage(error, 'Could not delete chat.'));
+    } finally {
+      setIsDeletingChatId(null);
+    }
   };
 
   const handleSelectChat = async (id: string) => {
@@ -594,6 +617,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
         onSelectChat={(id) => void handleSelectChat(id)}
         errorMessage={recentChatsError}
         onRetryRecentChats={() => void refreshRecentChats()}
+        onDeleteChat={(id) => void handleDeleteChat(id)}
+        isDeletingChatId={isDeletingChatId}
       />
 
       <div className="flex-1 overflow-y-auto">
