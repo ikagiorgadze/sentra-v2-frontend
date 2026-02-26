@@ -1,4 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 
 import App from '@/App';
@@ -41,5 +42,20 @@ describe('admin demo routing', () => {
       expect(window.location.pathname).toBe('/chat');
     });
     expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
+  });
+
+  it('opens admin demo immediately when clicking demo from /chat', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken('admin'));
+    window.history.pushState({}, '', '/chat');
+    const user = userEvent.setup();
+
+    render(<App />);
+
+    expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^demo$/i }));
+
+    expect(window.location.pathname).toBe('/admin/demo');
+    expect(await screen.findByLabelText(/scenario/i)).toBeInTheDocument();
   });
 });

@@ -31,6 +31,7 @@ import type {
 } from '@/features/sentra/types/conversation';
 import { AppState, AppView, RecentChat } from '@/features/sentra/types';
 import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
+import { useNavigate } from 'react-router-dom';
 
 interface AppShellProps {
   initialView?: AppView;
@@ -136,6 +137,7 @@ function isStreamingEnabled(): boolean {
 }
 
 export function AppShell({ initialView = 'landing', processingDelayMs = 3000, adminDemoMode = false }: AppShellProps) {
+  const navigate = useNavigate();
   const { isAuthenticated } = useBackendSession();
   const accessToken = getAccessToken();
   const isAdminUser =
@@ -262,7 +264,7 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   };
 
   const handleOpenDemo = () => {
-    syncPath('/admin/demo');
+    navigate('/admin/demo');
   };
 
   const resetToNewInvestigation = useCallback(() => {
