@@ -101,6 +101,18 @@ export async function postConversationMessage(
   return (await response.json()) as ConversationTurnRecord;
 }
 
+export async function retryConversationProposal(conversationId: string): Promise<ConversationTurnRecord> {
+  const response = await apiFetch(`/v1/conversations/${conversationId}/retry-proposal`, {
+    method: 'POST',
+  });
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+
+  return (await response.json()) as ConversationTurnRecord;
+}
+
 export async function confirmConversationJob(
   conversationId: string,
   payload: ConfirmConversationJobInput,

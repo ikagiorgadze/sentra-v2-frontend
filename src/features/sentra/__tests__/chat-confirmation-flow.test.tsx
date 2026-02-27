@@ -172,6 +172,114 @@ describe('chat confirmation flow', () => {
     });
   });
 
+  it('does not auto-confirm from typed acknowledgement while proposal is pending', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const conversationId = '3e26c319-913d-4bc3-990b-b6678f8b0351';
+    const jobId = 'ac4c09f5-0df5-4720-bbcf-c8f3f6fef097';
+
+    const fetchMock = vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+
+      if (url.endsWith('/v1/conversations')) {
+        return new Response(
+          JSON.stringify({
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-23T20:00:00Z',
+            updated_at: '2026-02-23T20:00:00Z',
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/messages`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: conversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: null,
+              state: 'awaiting_confirmation',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:00Z',
+            },
+            assistant_message: {
+              id: 'd74cf106-9f81-4f31-b6b4-54f133f6eb9f',
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: 'Please confirm this query before I create the job.',
+              inserted_at: '2026-02-23T20:00:01Z',
+              updated_at: '2026-02-23T20:00:01Z',
+            },
+            pending_proposal: {
+              id: 'f27f0f4a-cf2f-4f3e-b57a-9b50a277ba7a',
+              conversation_id: conversationId,
+              version: 1,
+              normalized_query: 'Sentiment around bank of georgia on facebook last week',
+              filters_json: { country: 'Georgia', time_range: '7d' },
+              status: 'pending',
+              inserted_at: '2026-02-23T20:00:01Z',
+              updated_at: '2026-02-23T20:00:01Z',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/confirm-job`)) {
+        return new Response(
+          JSON.stringify({
+            conversation_id: conversationId,
+            proposal_id: 'f27f0f4a-cf2f-4f3e-b57a-9b50a277ba7a',
+            job_id: jobId,
+            status: 'queued',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${jobId}`)) {
+        return new Response(
+          JSON.stringify({
+            id: jobId,
+            query: 'Sentiment around bank of georgia on facebook last week',
+            status: 'running',
+            inserted_at: '2026-02-23T20:00:02Z',
+            updated_at: '2026-02-23T20:00:03Z',
+            error_message: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'monitor bank of georgia on facebook last week');
+    await user.keyboard('{Enter}');
+    await screen.findByText(/confirm query/i);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'i confirm');
+    await user.keyboard('{Enter}');
+
+    const called = fetchMock.mock.calls.map((call) => String(call[0]));
+    expect(called.some((url) => url.includes('/confirm-job'))).toBe(false);
+    expect(screen.getByText(/use the confirm query card to start the job/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^confirm$/i })).toBeInTheDocument();
+
+    const messageCalls = called.filter((url) => url.includes(`/v1/conversations/${conversationId}/messages`));
+    expect(messageCalls).toHaveLength(1);
+  });
+
   it('lets user choose a similar completed job and loads existing results', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
@@ -379,6 +487,133 @@ describe('chat confirmation flow', () => {
       expect(screen.getByText(/what topic should we monitor/i)).toBeInTheDocument();
     });
     expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
+  });
+
+  it('restores confirm card from failed chat when user clicks try again', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const failedConversationId = '31d6f6d2-8105-4f20-8151-2bdadf7a9a31';
+    const calledUrls: string[] = [];
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input, init) => {
+      const url = String(input);
+      calledUrls.push(url);
+      const method = String(init?.method ?? (input instanceof Request ? input.method : 'GET')).toUpperCase();
+
+      if (url.endsWith('/v1/conversations') && method === 'GET') {
+        return new Response(
+          JSON.stringify({
+            items: [
+              {
+                id: failedConversationId,
+                user_id: '11111111-1111-1111-1111-111111111111',
+                title: 'Failed investigation',
+                state: 'failed',
+                active_proposal_version: 1,
+                inserted_at: '2026-02-23T20:00:00Z',
+                updated_at: '2026-02-23T20:00:05Z',
+              },
+            ],
+            next_cursor: null,
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.endsWith(`/v1/conversations/${failedConversationId}/snapshot`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: failedConversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: 'Failed investigation',
+              state: 'failed',
+              active_proposal_version: 1,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:05Z',
+            },
+            messages: [
+              {
+                id: 'failed-assistant-message',
+                conversation_id: failedConversationId,
+                role: 'assistant',
+                content: 'Last run failed.',
+                tool_trace_ref: null,
+                inserted_at: '2026-02-23T20:00:05Z',
+                updated_at: '2026-02-23T20:00:05Z',
+              },
+            ],
+            pending_proposal: null,
+            retry_proposal: null,
+            active_job_id: null,
+            latest_job: {
+              id: 'c0c68e3c-4865-4dc8-b2e7-6ed39dbdc999',
+              status: 'failed',
+              error_message: 'collection_failed',
+              stage_code: 'collecting',
+              stage_label: 'Collecting',
+              updated_at: '2026-02-23T20:00:05Z',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.endsWith(`/v1/conversations/${failedConversationId}/retry-proposal`) && method === 'POST') {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: failedConversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: 'Failed investigation',
+              state: 'awaiting_confirmation',
+              active_proposal_version: 2,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:06Z',
+            },
+            assistant_message: {
+              id: 'retry-assistant-message',
+              conversation_id: failedConversationId,
+              role: 'assistant',
+              content: 'I restored your last failed query. Review and confirm to start a new job.',
+              inserted_at: '2026-02-23T20:00:06Z',
+              updated_at: '2026-02-23T20:00:06Z',
+            },
+            pending_proposal: {
+              id: 'retry-proposal-id',
+              conversation_id: failedConversationId,
+              version: 2,
+              normalized_query: 'Sentiment around bank of georgia on facebook last week',
+              filters_json: { country: 'Georgia', time_range: '7d' },
+              status: 'pending',
+              inserted_at: '2026-02-23T20:00:06Z',
+              updated_at: '2026-02-23T20:00:06Z',
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.click(await screen.findByRole('button', { name: /failed investigation.*failed/i }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByRole('button', { name: /try again/i }));
+
+    await waitFor(() => {
+      expect(screen.getByText(/confirm query/i)).toBeInTheDocument();
+    });
+
+    expect(calledUrls.some((url) => url.includes('/retry-proposal'))).toBe(true);
+    expect(calledUrls.some((url) => url.includes('/confirm-job'))).toBe(false);
   });
 
   it('shows backend error detail when message request fails', async () => {

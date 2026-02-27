@@ -2,6 +2,7 @@ import { useEffect, useRef } from 'react';
 
 import type { ConversationProposalRecord } from '@/features/sentra/types/conversation';
 import { MessageComposer } from '@/features/sentra/components/chat/MessageComposer';
+import { JobProgressCard } from '@/features/sentra/components/chat/JobProgressCard';
 import { ProposalConfirmationCard } from '@/features/sentra/components/chat/ProposalConfirmationCard';
 
 export interface ChatBubble {
@@ -13,10 +14,19 @@ export interface ChatBubble {
 interface ConversationPanelProps {
   messages: ChatBubble[];
   pendingProposal: ConversationProposalRecord | null;
+  jobProgress?: {
+    statusLabel: string;
+    stageLabel?: string | null;
+    warningMessage?: string | null;
+    errorMessage?: string | null;
+    canRetry?: boolean;
+  } | null;
   onSend: (message: string) => Promise<void> | void;
   onStartNewProposal: () => Promise<void> | void;
   onUseExistingProposal: (jobId: string) => Promise<void> | void;
   onEditProposal: () => void;
+  onRetryJob?: () => Promise<void> | void;
+  isRetryingJob?: boolean;
   disabled?: boolean;
   showAssistantTyping?: boolean;
   hideComposer?: boolean;
@@ -25,10 +35,13 @@ interface ConversationPanelProps {
 export function ConversationPanel({
   messages,
   pendingProposal,
+  jobProgress = null,
   onSend,
   onStartNewProposal,
   onUseExistingProposal,
   onEditProposal,
+  onRetryJob,
+  isRetryingJob = false,
   disabled = false,
   showAssistantTyping = false,
   hideComposer = false,
@@ -80,6 +93,18 @@ export function ConversationPanel({
               onUseExisting={onUseExistingProposal}
               onEdit={onEditProposal}
               disabled={disabled}
+            />
+          )}
+
+          {jobProgress && (
+            <JobProgressCard
+              statusLabel={jobProgress.statusLabel}
+              stageLabel={jobProgress.stageLabel}
+              warningMessage={jobProgress.warningMessage}
+              errorMessage={jobProgress.errorMessage}
+              canRetry={jobProgress.canRetry}
+              onTryAgain={onRetryJob}
+              isRetrying={isRetryingJob}
             />
           )}
 

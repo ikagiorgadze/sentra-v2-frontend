@@ -66,6 +66,17 @@ export interface ConversationSnapshotRecord {
   messages: ConversationMessageRecord[];
   pending_proposal?: ConversationProposalRecord | null;
   active_job_id?: string | null;
+  latest_job?: ConversationLatestJobRecord | null;
+  retry_proposal?: ConversationProposalRecord | null;
+}
+
+export interface ConversationLatestJobRecord {
+  id: string;
+  status: string;
+  error_message?: string | null;
+  stage_code?: string | null;
+  stage_label?: string | null;
+  updated_at: string;
 }
 
 export interface ConfirmConversationJobRecord {

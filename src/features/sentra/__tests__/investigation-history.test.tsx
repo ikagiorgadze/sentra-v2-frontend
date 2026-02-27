@@ -315,7 +315,8 @@ describe('investigation history', () => {
     await waitFor(() => {
       expect(screen.getByText(/last run failed\./i)).toBeInTheDocument();
     });
-    expect(screen.queryByText(/status:/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/status:\s*failed/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /try again/i })).toBeInTheDocument();
   });
 
   it('restores pending reuse decision choices from snapshot payload', async () => {

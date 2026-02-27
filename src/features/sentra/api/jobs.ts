@@ -7,6 +7,8 @@ export interface JobRecord {
   inserted_at: string;
   updated_at: string;
   error_message?: string | null;
+  stage_code?: string | null;
+  stage_label?: string | null;
 }
 
 async function parseError(response: Response): Promise<string> {
