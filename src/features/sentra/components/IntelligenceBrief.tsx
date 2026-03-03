@@ -246,6 +246,7 @@ function buildRiskSignals(
 
 export function IntelligenceBrief({ query, jobId }: IntelligenceBriefProps) {
   const [expandedEvidence, setExpandedEvidence] = useState(false);
+  const [expandedEvidenceRows, setExpandedEvidenceRows] = useState<Record<number, boolean>>({});
   const [backendSummary, setBackendSummary] = useState<string | null>(null);
   const [backendTrend, setBackendTrend] = useState<SentimentTimeseriesPoint[]>([]);
   const [backendDistribution, setBackendDistribution] = useState<{
@@ -263,6 +264,7 @@ export function IntelligenceBrief({ query, jobId }: IntelligenceBriefProps) {
       setBackendDistribution(null);
       setBackendTopics([]);
       setBackendExamples([]);
+      setExpandedEvidenceRows({});
       return;
     }
 
@@ -315,6 +317,7 @@ export function IntelligenceBrief({ query, jobId }: IntelligenceBriefProps) {
       } else {
         setBackendExamples([]);
       }
+      setExpandedEvidenceRows({});
     };
 
     void load();
@@ -549,7 +552,37 @@ export function IntelligenceBrief({ query, jobId }: IntelligenceBriefProps) {
                           <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{item.source}</td>
                           <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{item.timestamp}</td>
                           <td className="px-6 py-4 font-mono text-xs text-muted-foreground">{item.language}</td>
-                          <td className="max-w-md truncate px-6 py-4 text-foreground">{item.snippet}</td>
+                          <td className="max-w-md px-6 py-4 align-top text-foreground">
+                            {(() => {
+                              const previewLimit = 220;
+                              const isLongSnippet = item.snippet.length > previewLimit;
+                              const isExpanded = !!expandedEvidenceRows[index];
+                              const preview = isLongSnippet
+                                ? `${item.snippet.slice(0, previewLimit).trimEnd()}...`
+                                : item.snippet;
+                              return (
+                                <div className="space-y-2">
+                                  <div className="whitespace-pre-wrap break-words">
+                                    {isLongSnippet && !isExpanded ? preview : item.snippet}
+                                  </div>
+                                  {isLongSnippet && (
+                                    <button
+                                      type="button"
+                                      className="text-xs text-[#3FD6D0] transition-colors hover:text-[#62e6e1]"
+                                      onClick={() =>
+                                        setExpandedEvidenceRows((prev) => ({
+                                          ...prev,
+                                          [index]: !prev[index],
+                                        }))
+                                      }
+                                    >
+                                      {isExpanded ? 'Show less' : 'Show more'}
+                                    </button>
+                                  )}
+                                </div>
+                              );
+                            })()}
+                          </td>
                           <td className="px-6 py-4">
                             <span
                               className={`inline-flex rounded px-2 py-1 text-xs ${
