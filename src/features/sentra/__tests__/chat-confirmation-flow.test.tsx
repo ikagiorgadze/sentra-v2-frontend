@@ -418,6 +418,133 @@ describe('chat confirmation flow', () => {
     });
   });
 
+  it('routes directly to results when backend auto-reuses a completed job', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    const user = userEvent.setup();
+
+    const conversationId = 'c7c2d611-254f-47f2-9f41-d4f6a6e0232f';
+    const existingJobId = '16b11cf3-6d3e-4482-aad8-890eb4f67fd3';
+    const calledUrls: string[] = [];
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      calledUrls.push(url);
+
+      if (url.endsWith('/v1/conversations')) {
+        return new Response(
+          JSON.stringify({
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-23T20:00:00Z',
+            updated_at: '2026-02-23T20:00:00Z',
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/conversations/${conversationId}/messages`)) {
+        return new Response(
+          JSON.stringify({
+            conversation: {
+              id: conversationId,
+              user_id: '11111111-1111-1111-1111-111111111111',
+              title: null,
+              state: 'completed',
+              active_proposal_version: 0,
+              inserted_at: '2026-02-23T20:00:00Z',
+              updated_at: '2026-02-23T20:00:00Z',
+            },
+            assistant_message: {
+              id: '6e63d114-9124-4f7e-9f5a-968b58437f1b',
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: 'I found a high-confidence completed job match and opened it.',
+              inserted_at: '2026-02-23T20:00:01Z',
+              updated_at: '2026-02-23T20:00:01Z',
+            },
+            pending_proposal: null,
+            decision_mode: 'auto_reused_existing',
+            auto_reused_job: {
+              job_id: existingJobId,
+              matched_query: 'Sentiment around pension reform in Romania last 7 days',
+              similarity_score: 0.97,
+            },
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${existingJobId}/overview`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            total_mentions: 10,
+            sentiment_index: -10,
+            engagement_rate: 1.2,
+            dominant_theme: 'Economy',
+            summary: 'Summary text',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-overview`)) {
+        return new Response(
+          JSON.stringify({ job_id: existingJobId, positive: 2, neutral: 3, negative: 5 }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-timeseries`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            items: [{ date: '2026-02-23', positive: 2, neutral: 3, negative: 5 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-by-topic`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            items: [{ topic: 'Economy', positive: 1, neutral: 1, negative: 2 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-examples`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            items: [{ text: 'Example text', sentiment: 'negative', score: 0.87 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'Track pension reform sentiment in Romania for the last 7 days');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
+    expect(calledUrls.some((url) => url.includes('/confirm-job'))).toBe(false);
+  });
+
   it('renders a normal assistant chat response without proposal card for greeting', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));

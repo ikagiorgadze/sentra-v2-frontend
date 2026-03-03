@@ -207,6 +207,112 @@ describe('chat streaming flow', () => {
     expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
   });
 
+  it('transitions directly to results when turn_complete indicates auto reuse', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+    window.__SENTRA_STREAMING_ENABLED__ = true;
+    const user = userEvent.setup();
+
+    const conversationId = '7d6ea2bc-5cc8-49b7-9077-150f2f5ca4c2';
+    const existingJobId = '6c1884a4-6441-4de5-a4a9-89db53400d2e';
+    const encoder = new TextEncoder();
+
+    vi.spyOn(global, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.endsWith('/v1/conversations')) {
+        return new Response(
+          JSON.stringify({
+            id: conversationId,
+            user_id: '11111111-1111-1111-1111-111111111111',
+            title: null,
+            state: 'collecting_intent',
+            active_proposal_version: 0,
+            inserted_at: '2026-02-24T00:00:00Z',
+            updated_at: '2026-02-24T00:00:00Z',
+          }),
+          { status: 201, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes(`/v1/conversations/${conversationId}/messages/stream`)) {
+        const stream = new ReadableStream<Uint8Array>({
+          start(controller) {
+            controller.enqueue(
+              encoder.encode(
+                'event: turn_start\ndata: {"conversation":{"id":"' +
+                  conversationId +
+                  '"}}\n\n' +
+                  'event: turn_complete\ndata: {"conversation":{"id":"' +
+                  conversationId +
+                  '"},"assistant_message":{"id":"m1","content":"I found a high-confidence completed job match and opened it."},"proposal":null,"decision_mode":"auto_reused_existing","auto_reused_job":{"job_id":"' +
+                  existingJobId +
+                  '","matched_query":"Sentiment around pension reform in Romania last 7 days","similarity_score":0.97}}\n\n',
+              ),
+            );
+            controller.close();
+          },
+        });
+        return new Response(stream, { status: 200, headers: { 'Content-Type': 'text/event-stream' } });
+      }
+      if (url.includes(`/v1/jobs/${existingJobId}/overview`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            total_mentions: 10,
+            sentiment_index: -10,
+            engagement_rate: 1.2,
+            dominant_theme: 'Economy',
+            summary: 'Summary text',
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-overview`)) {
+        return new Response(
+          JSON.stringify({ job_id: existingJobId, positive: 2, neutral: 3, negative: 5 }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-timeseries`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            items: [{ date: '2026-02-23', positive: 2, neutral: 3, negative: 5 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-by-topic`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            items: [{ topic: 'Economy', positive: 1, neutral: 1, negative: 2 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      if (url.includes(`/v1/jobs/${existingJobId}/sentiment-examples`)) {
+        return new Response(
+          JSON.stringify({
+            job_id: existingJobId,
+            items: [{ text: 'Example text', sentiment: 'negative', score: 0.87 }],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        );
+      }
+      return new Response('{}', { status: 200, headers: { 'Content-Type': 'application/json' } });
+    });
+
+    render(<AppShell initialView="app" processingDelayMs={10} />);
+
+    await user.type(screen.getByRole('textbox', { name: /query/i }), 'hello');
+    await user.keyboard('{Enter}');
+
+    await waitFor(() => {
+      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
+  });
+
   it('clears stale pending proposal when clarification arrives', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
