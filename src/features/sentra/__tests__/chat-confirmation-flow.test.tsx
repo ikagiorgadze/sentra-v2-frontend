@@ -332,7 +332,7 @@ describe('chat confirmation flow', () => {
               conversation_id: conversationId,
               version: 1,
               normalized_query: 'Sentiment around pension reform in Romania last 7 days',
-              filters_json: { country: 'Romania', time_range: '7d', reuse_requested: true },
+              filters_json: { country: 'Romania', time_range: '7d' },
               reuse_candidates: [
                 {
                   job_id: existingJobId,

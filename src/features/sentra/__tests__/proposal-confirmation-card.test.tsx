@@ -37,7 +37,7 @@ describe('ProposalConfirmationCard', () => {
     expect(screen.getByText(/keywords=iphoneShopTbilisi/i)).toBeInTheDocument();
   });
 
-  it('does not show reuse choices unless reuse is explicitly requested', () => {
+  it('shows reuse choices whenever reuse candidates are present', () => {
     render(
       <ProposalConfirmationCard
         proposal={{
@@ -66,7 +66,7 @@ describe('ProposalConfirmationCard', () => {
       />,
     );
 
-    expect(screen.queryByRole('button', { name: /use existing/i })).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /confirm/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /use existing/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /start new/i })).toBeInTheDocument();
   });
 });

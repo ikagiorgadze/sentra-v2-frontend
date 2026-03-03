@@ -17,8 +17,7 @@ export function ProposalConfirmationCard({
 }: ProposalConfirmationCardProps) {
   const filterEntries = Object.entries(proposal.filters_json ?? {}).filter(([key]) => key !== 'reuse_requested');
   const reuseCandidates = proposal.reuse_candidates ?? [];
-  const reuseRequested = proposal.filters_json?.reuse_requested === true;
-  const shouldShowReuseChoices = reuseRequested && reuseCandidates.length > 0;
+  const shouldShowReuseChoices = reuseCandidates.length > 0;
 
   const formatFilterValue = (value: unknown): string => {
     if (value === null || value === undefined) {
