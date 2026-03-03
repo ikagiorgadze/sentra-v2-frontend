@@ -6,7 +6,7 @@ export const determineUserRoute = (userState: UserState): string => {
   }
 
   if (userState.subscriptionStatus !== 'active' && userState.subscriptionStatus !== 'trial') {
-    return '/billing';
+    return '/chat';
   }
 
   if (!userState.hasCompletedOnboarding) {

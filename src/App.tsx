@@ -31,8 +31,9 @@ const App = () => {
 
             <Route path="/chat" element={<AppShell initialView="app" />} />
             <Route path="/admin/demo" element={<AppShell initialView="app" adminDemoMode />} />
+            <Route path="/admin/users/usage" element={<AppShell initialView="app" adminUsageMode="list" />} />
+            <Route path="/admin/users/usage/:userId" element={<AppShell initialView="app" adminUsageMode="detail" />} />
             <Route path="/dashboard" element={<AppShell initialView="app" />} />
-            <Route path="/billing" element={<AppShell initialView="app" />} />
             <Route path="/onboarding" element={<AppShell initialView="app" />} />
             <Route path="/sample-report" element={<AppShell initialView="app" />} />
 

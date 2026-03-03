@@ -23,6 +23,8 @@ import {
 } from '@/features/sentra/components/RightPanel';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { AdminDemoPage } from '@/features/sentra/components/AdminDemoPage';
+import { AdminUsersUsagePage } from '@/features/sentra/components/AdminUsersUsagePage';
+import { AdminUserUsageDetailPage } from '@/features/sentra/components/AdminUserUsageDetailPage';
 import { getTokenRole, isTokenUnexpired } from '@/features/sentra/auth/tokenClaims';
 import { useBackendSession } from '@/features/sentra/hooks/useBackendSession';
 import type {
@@ -32,12 +34,12 @@ import type {
 } from '@/features/sentra/types/conversation';
 import { AppState, AppView, RecentChat } from '@/features/sentra/types';
 import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
-import { useNavigate } from 'react-router-dom';
 
 interface AppShellProps {
   initialView?: AppView;
   processingDelayMs?: number;
   adminDemoMode?: boolean;
+  adminUsageMode?: 'list' | 'detail';
 }
 
 interface JobProgressState {
@@ -167,8 +169,12 @@ function isStreamingEnabled(): boolean {
   return true;
 }
 
-export function AppShell({ initialView = 'landing', processingDelayMs = 3000, adminDemoMode = false }: AppShellProps) {
-  const navigate = useNavigate();
+export function AppShell({
+  initialView = 'landing',
+  processingDelayMs = 3000,
+  adminDemoMode = false,
+  adminUsageMode,
+}: AppShellProps) {
   const { isAuthenticated } = useBackendSession();
   const accessToken = getAccessToken();
   const isAdminUser =
@@ -211,9 +217,10 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     'What narrative risks are rising around healthcare funding?',
     'Compare support sentiment for the top two mayoral candidates',
   ];
+  const [, setRouteTick] = useState(0);
 
   useEffect(() => {
-    if (!adminDemoMode) {
+    if (!adminDemoMode && !adminUsageMode) {
       return;
     }
 
@@ -231,9 +238,13 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
       return;
     }
 
-    syncPath('/admin/demo');
+    if (adminDemoMode) {
+      syncPath('/admin/demo');
+    } else if (adminUsageMode === 'list') {
+      syncPath('/admin/users/usage');
+    }
     setCurrentView('app');
-  }, [adminDemoMode]);
+  }, [adminDemoMode, adminUsageMode]);
 
   useEffect(() => {
     if (currentView === 'landing' && isAuthenticated && window.location.pathname === '/') {
@@ -350,7 +361,8 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   };
 
   const handleOpenDemo = () => {
-    navigate('/admin/demo');
+    syncPath('/admin/demo');
+    setRouteTick((prev) => prev + 1);
   };
 
   const resetToNewInvestigation = useCallback(() => {
@@ -891,8 +903,20 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     return <AuthPage onAuthenticate={handleAuthenticate} />;
   }
 
-  if (adminDemoMode) {
+  const pathname = window.location.pathname;
+  const shouldRenderAdminDemo = (adminDemoMode || pathname === '/admin/demo') && isAdminUser;
+  const shouldRenderAdminUsageList = adminUsageMode === 'list' && pathname === '/admin/users/usage';
+  const shouldRenderAdminUsageDetail =
+    adminUsageMode === 'detail' && pathname.startsWith('/admin/users/usage/');
+
+  if (shouldRenderAdminDemo) {
     return <AdminDemoPage />;
+  }
+  if (shouldRenderAdminUsageList) {
+    return <AdminUsersUsagePage />;
+  }
+  if (shouldRenderAdminUsageDetail) {
+    return <AdminUserUsageDetailPage />;
   }
 
   return (
