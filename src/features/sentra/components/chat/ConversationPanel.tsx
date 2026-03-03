@@ -1,15 +1,29 @@
 import { useEffect, useRef } from 'react';
 
 import type { ConversationProposalRecord } from '@/features/sentra/types/conversation';
+import { IntelligenceBriefBubble } from '@/features/sentra/components/chat/IntelligenceBriefBubble';
 import { MessageComposer } from '@/features/sentra/components/chat/MessageComposer';
 import { JobProgressCard } from '@/features/sentra/components/chat/JobProgressCard';
 import { ProposalConfirmationCard } from '@/features/sentra/components/chat/ProposalConfirmationCard';
 
-export interface ChatBubble {
+export interface TextChatBubble {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  kind?: 'text';
 }
+
+export interface IntelligenceBriefChatBubble {
+  id: string;
+  role: 'assistant';
+  kind: 'assistant_brief';
+  payload: {
+    query: string;
+    jobId?: string;
+  };
+}
+
+export type ChatBubble = TextChatBubble | IntelligenceBriefChatBubble;
 
 interface ConversationPanelProps {
   messages: ChatBubble[];
@@ -69,22 +83,32 @@ export function ConversationPanel({
         )}
 
         <div className="mx-auto mt-6 flex w-full max-w-3xl flex-col gap-3">
-          {messages.map((message) => (
-            <div
-              key={message.id}
-              className={message.role === 'user' ? 'ml-auto max-w-[80%]' : 'mr-auto max-w-[80%]'}
-            >
+          {messages.map((message) => {
+            if (message.kind === 'assistant_brief') {
+              return (
+                <div key={message.id} className="mr-auto w-full">
+                  <IntelligenceBriefBubble query={message.payload.query} jobId={message.payload.jobId} />
+                </div>
+              );
+            }
+
+            return (
               <div
-                className={
-                  message.role === 'user'
-                    ? 'rounded-lg border border-[#3FD6D0]/30 bg-[#3FD6D0]/10 px-4 py-3 text-sm'
-                    : 'rounded-lg border border-border bg-card px-4 py-3 text-sm'
-                }
+                key={message.id}
+                className={message.role === 'user' ? 'ml-auto max-w-[80%]' : 'mr-auto max-w-[80%]'}
               >
-                {message.content}
+                <div
+                  className={
+                    message.role === 'user'
+                      ? 'rounded-lg border border-[#3FD6D0]/30 bg-[#3FD6D0]/10 px-4 py-3 text-sm'
+                      : 'rounded-lg border border-border bg-card px-4 py-3 text-sm'
+                  }
+                >
+                  {message.content}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {pendingProposal && (
             <ProposalConfirmationCard
