@@ -51,6 +51,12 @@ export interface ClarificationRecord {
   question: string;
 }
 
+export interface AutoReusedJobRecord {
+  job_id: string;
+  matched_query: string;
+  similarity_score: number;
+}
+
 export interface ConversationTurnRecord {
   conversation: ConversationRecord;
   conversation_state?: ConversationState | null;
@@ -59,6 +65,8 @@ export interface ConversationTurnRecord {
   clarification?: ClarificationRecord | null;
   agent_trace_id?: string | null;
   pending_proposal?: ConversationProposalRecord | null;
+  decision_mode?: 'proposal_pending' | 'clarification' | 'auto_reused_existing' | null;
+  auto_reused_job?: AutoReusedJobRecord | null;
 }
 
 export interface ConversationSnapshotRecord {

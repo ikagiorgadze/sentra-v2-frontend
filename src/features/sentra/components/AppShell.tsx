@@ -465,10 +465,31 @@ export function AppShell({
                     ),
                   );
                 }
-                const pending = (event.payload.proposal ?? null) as ConversationProposalRecord | null | undefined;
-                setPendingProposal(pending ?? null);
-                if (pending?.normalized_query) {
-                  setQuery(pending.normalized_query);
+                const decisionMode = String(event.payload.decision_mode ?? '').trim();
+                const autoReused = (event.payload.auto_reused_job ?? null) as
+                  | { job_id?: string; matched_query?: string }
+                  | null;
+                if (decisionMode === 'auto_reused_existing' && autoReused?.job_id) {
+                  setPendingProposal(null);
+                  setState('results');
+                  setActiveJobId(undefined);
+                  setCurrentJobId(autoReused.job_id);
+                  setJobProgress({
+                    statusLabel: 'completed',
+                    stageLabel: 'Completed',
+                    warningMessage: null,
+                    errorMessage: null,
+                    canRetry: false,
+                  });
+                  if (typeof autoReused.matched_query === 'string' && autoReused.matched_query.trim()) {
+                    setQuery(autoReused.matched_query);
+                  }
+                } else {
+                  const pending = (event.payload.proposal ?? null) as ConversationProposalRecord | null | undefined;
+                  setPendingProposal(pending ?? null);
+                  if (pending?.normalized_query) {
+                    setQuery(pending.normalized_query);
+                  }
                 }
                 return;
               }
@@ -494,7 +515,6 @@ export function AppShell({
       setConversationId(turn.conversation.id);
       setCurrentChatId(turn.conversation.id);
       const resolvedProposal = turn.proposal ?? turn.pending_proposal ?? null;
-      setPendingProposal(resolvedProposal);
       setChatMessages((prev) => [
         ...prev,
         {
@@ -504,8 +524,27 @@ export function AppShell({
         },
       ]);
 
-      if (resolvedProposal) {
-        setQuery(resolvedProposal.normalized_query);
+      const autoReused = turn.auto_reused_job;
+      if (turn.decision_mode === 'auto_reused_existing' && autoReused?.job_id) {
+        setPendingProposal(null);
+        setState('results');
+        setActiveJobId(undefined);
+        setCurrentJobId(autoReused.job_id);
+        setJobProgress({
+          statusLabel: 'completed',
+          stageLabel: 'Completed',
+          warningMessage: null,
+          errorMessage: null,
+          canRetry: false,
+        });
+        if (typeof autoReused.matched_query === 'string' && autoReused.matched_query.trim()) {
+          setQuery(autoReused.matched_query);
+        }
+      } else {
+        setPendingProposal(resolvedProposal);
+        if (resolvedProposal) {
+          setQuery(resolvedProposal.normalized_query);
+        }
       }
       void refreshRecentChats();
     } catch (error) {

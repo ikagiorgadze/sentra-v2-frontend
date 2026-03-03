@@ -57,6 +57,36 @@ describe('intelligence brief backend', () => {
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            job_id: '120d6e13-9f74-42bb-9fff-395a7f4f5f00',
+            items: [
+              { topic: 'Economic impact', positive: 20, neutral: 30, negative: 90 },
+              { topic: 'Public trust', positive: 10, neutral: 20, negative: 80 },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
+      )
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            job_id: '120d6e13-9f74-42bb-9fff-395a7f4f5f00',
+            items: [
+              {
+                text: 'Pension reform hurts low-income workers.',
+                sentiment: 'negative',
+                score: -0.82,
+                source: 'post',
+                source_url: 'https://facebook.com/post/1',
+                timestamp: '2026-02-21T10:30:00Z',
+              },
+            ],
+          }),
+          { status: 200, headers: { 'Content-Type': 'application/json' } },
+        ),
       );
 
     render(

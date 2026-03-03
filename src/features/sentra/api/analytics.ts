@@ -26,6 +26,32 @@ export interface SentimentTimeseriesResponse {
   items: SentimentTimeseriesPoint[];
 }
 
+export interface SentimentByTopicItem {
+  topic: string;
+  positive: number;
+  neutral: number;
+  negative: number;
+}
+
+export interface SentimentByTopicResponse {
+  job_id: string;
+  items: SentimentByTopicItem[];
+}
+
+export interface SentimentExampleItem {
+  text: string;
+  sentiment: string;
+  score: number;
+  source?: string | null;
+  source_url?: string | null;
+  timestamp?: string | null;
+}
+
+export interface SentimentExamplesResponse {
+  job_id: string;
+  items: SentimentExampleItem[];
+}
+
 async function parseError(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as { detail?: string };
@@ -55,3 +81,9 @@ export const getSentimentOverview = (jobId: string): Promise<SentimentOverviewRe
 
 export const getSentimentTimeseries = (jobId: string): Promise<SentimentTimeseriesResponse> =>
   getJson<SentimentTimeseriesResponse>(`/v1/jobs/${jobId}/sentiment-timeseries`);
+
+export const getSentimentByTopic = (jobId: string): Promise<SentimentByTopicResponse> =>
+  getJson<SentimentByTopicResponse>(`/v1/jobs/${jobId}/sentiment-by-topic`);
+
+export const getSentimentExamples = (jobId: string, limit = 20): Promise<SentimentExamplesResponse> =>
+  getJson<SentimentExamplesResponse>(`/v1/jobs/${jobId}/sentiment-examples?limit=${limit}`);
