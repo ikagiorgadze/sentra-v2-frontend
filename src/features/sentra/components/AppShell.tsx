@@ -14,7 +14,6 @@ import { getJob } from '@/features/sentra/api/jobs';
 import { ConversationPanel, type ChatBubble } from '@/features/sentra/components/chat/ConversationPanel';
 import { AuthDialog } from '@/features/sentra/components/AuthDialog';
 import { AuthPage } from '@/features/sentra/components/AuthPage';
-import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
 import { LandingPage } from '@/features/sentra/components/LandingPage';
 import {
   createDefaultAdvancedFilters,
@@ -66,6 +65,7 @@ function getRelativeTime(timestamp: number) {
 function assistantBubble(content: string): ChatBubble {
   return {
     id: crypto.randomUUID(),
+    kind: 'text',
     role: 'assistant',
     content,
   };
@@ -74,8 +74,21 @@ function assistantBubble(content: string): ChatBubble {
 function userBubble(content: string): ChatBubble {
   return {
     id: crypto.randomUUID(),
+    kind: 'text',
     role: 'user',
     content,
+  };
+}
+
+function assistantBriefBubble(jobId: string, queryText: string): ChatBubble {
+  return {
+    id: `brief:${jobId}`,
+    kind: 'assistant_brief',
+    role: 'assistant',
+    payload: {
+      jobId,
+      query: queryText,
+    },
   };
 }
 
@@ -147,6 +160,7 @@ function deriveConversationTitle(title: string | null, fallback: string): string
 function mapConversationMessageToBubble(message: ConversationMessageRecord): ChatBubble {
   return {
     id: message.id,
+    kind: 'text',
     role: message.role === 'user' ? 'user' : 'assistant',
     content: message.content,
   };
@@ -218,6 +232,20 @@ export function AppShell({
     'Compare support sentiment for the top two mayoral candidates',
   ];
   const [, setRouteTick] = useState(0);
+
+  const appendBriefBubbleForJob = useCallback((jobId?: string, queryText?: string) => {
+    const resolvedJobId = String(jobId ?? '').trim();
+    if (!resolvedJobId) {
+      return;
+    }
+    const resolvedQuery = String(queryText ?? query).trim() || query;
+    setChatMessages((prev) => {
+      if (prev.some((bubble) => bubble.kind === 'assistant_brief' && bubble.payload.jobId === resolvedJobId)) {
+        return prev;
+      }
+      return [...prev, assistantBriefBubble(resolvedJobId, resolvedQuery)];
+    });
+  }, [query]);
 
   useEffect(() => {
     if (!adminDemoMode && !adminUsageMode) {
@@ -484,6 +512,7 @@ export function AppShell({
                   if (typeof autoReused.matched_query === 'string' && autoReused.matched_query.trim()) {
                     setQuery(autoReused.matched_query);
                   }
+                  appendBriefBubbleForJob(autoReused.job_id, autoReused.matched_query);
                 } else {
                   const pending = (event.payload.proposal ?? null) as ConversationProposalRecord | null | undefined;
                   setPendingProposal(pending ?? null);
@@ -540,6 +569,7 @@ export function AppShell({
         if (typeof autoReused.matched_query === 'string' && autoReused.matched_query.trim()) {
           setQuery(autoReused.matched_query);
         }
+        appendBriefBubbleForJob(autoReused.job_id, autoReused.matched_query);
       } else {
         setPendingProposal(resolvedProposal);
         if (resolvedProposal) {
@@ -634,6 +664,7 @@ export function AppShell({
         setState('results');
         setCurrentJobId(confirmed.job_id);
         setChatMessages((prev) => [...prev, assistantBubble('Using the existing completed job from your history.')]);
+        appendBriefBubbleForJob(confirmed.job_id, pendingProposal.normalized_query);
       } else {
         setState('running');
         setCurrentJobId(undefined);
@@ -724,10 +755,11 @@ export function AppShell({
       const snapshot = await getConversationSnapshot(id);
       const lastUserMessage = [...snapshot.messages].reverse().find((message) => message.role === 'user');
       const resolvedProposal = snapshot.pending_proposal ?? snapshot.retry_proposal ?? null;
+      const resolvedQuery = resolvedProposal?.normalized_query ?? lastUserMessage?.content ?? '';
       setConversationId(snapshot.conversation.id);
       setChatMessages(snapshot.messages.map(mapConversationMessageToBubble));
       setPendingProposal(resolvedProposal);
-      setQuery(resolvedProposal?.normalized_query ?? lastUserMessage?.content ?? '');
+      setQuery(resolvedQuery);
 
       if (snapshot.latest_job) {
         const latest = snapshot.latest_job;
@@ -744,6 +776,7 @@ export function AppShell({
             errorMessage: null,
             canRetry: false,
           });
+          appendBriefBubbleForJob(latest.id, resolvedQuery);
           return;
         }
         if (status === 'failed') {
@@ -795,6 +828,7 @@ export function AppShell({
         });
         setActiveJobId(undefined);
         setCurrentJobId(snapshot.active_job_id);
+        appendBriefBubbleForJob(snapshot.active_job_id, resolvedQuery);
       } else {
         setState('idle');
         setJobProgress(
@@ -848,6 +882,7 @@ export function AppShell({
           setState('results');
           setCurrentJobId(activeJobId);
           setActiveJobId(undefined);
+          appendBriefBubbleForJob(activeJobId, query);
           void refreshRecentChats();
           return;
         }
@@ -900,7 +935,7 @@ export function AppShell({
         clearTimeout(timeoutId);
       }
     };
-  }, [activeJobId, processingDelayMs, refreshRecentChats]);
+  }, [activeJobId, appendBriefBubbleForJob, processingDelayMs, query, refreshRecentChats]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -987,7 +1022,6 @@ export function AppShell({
           disabled={isSendingMessage || isConfirmingProposal || !!activeJobId || isRetryingJob}
           showAssistantTyping={isSendingMessage && isAwaitingFirstToken}
         />
-        {state === 'results' && <IntelligenceBrief query={query} jobId={currentJobId} />}
       </div>
 
       <RightPanel filters={advancedFilters} onChange={setAdvancedFilters} />

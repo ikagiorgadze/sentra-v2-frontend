@@ -308,7 +308,7 @@ describe('chat streaming flow', () => {
     await user.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+      expect(screen.getByTestId('chat-intelligence-brief')).toBeInTheDocument();
     });
     expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
   });

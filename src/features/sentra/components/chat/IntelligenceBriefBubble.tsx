@@ -7,7 +7,7 @@ interface IntelligenceBriefBubbleProps {
 
 export function IntelligenceBriefBubble({ query, jobId }: IntelligenceBriefBubbleProps) {
   return (
-    <div className="rounded-lg border border-border bg-card">
+    <div className="rounded-lg border border-border bg-card" data-testid="chat-intelligence-brief">
       <IntelligenceBrief query={query} jobId={jobId} />
     </div>
   );
