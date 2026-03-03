@@ -9,17 +9,32 @@ import {
   FileText,
   Link as LinkIcon,
   MessageSquare,
+  Send,
   Shield,
   TrendingUp,
   Users,
 } from 'lucide-react';
+import { FormEvent } from 'react';
 
 interface LandingPageProps {
   onGetStarted: () => void;
   onViewSample: () => void;
+  landingDraftMessage: string;
+  onLandingDraftChange: (value: string) => void;
+  onTrySend: (message: string) => void;
+  examplePrompts: string[];
+  onSelectExample: (prompt: string) => void;
 }
 
-export function LandingPage({ onGetStarted, onViewSample }: LandingPageProps) {
+export function LandingPage({
+  onGetStarted,
+  onViewSample,
+  landingDraftMessage,
+  onLandingDraftChange,
+  onTrySend,
+  examplePrompts,
+  onSelectExample,
+}: LandingPageProps) {
   const personas = [
     {
       icon: Users,
@@ -92,6 +107,15 @@ export function LandingPage({ onGetStarted, onViewSample }: LandingPageProps) {
     },
   ];
 
+  const handleLandingSubmit = (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const trimmed = landingDraftMessage.trim();
+    if (!trimmed) {
+      return;
+    }
+    onTrySend(trimmed);
+  };
+
   return (
     <div className="dark min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
@@ -110,33 +134,60 @@ export function LandingPage({ onGetStarted, onViewSample }: LandingPageProps) {
         </div>
       </header>
 
-      <section className="relative overflow-hidden">
-        <div className="mx-auto max-w-7xl px-6 py-24 md:py-32">
-          <div className="max-w-3xl">
+      <section className="relative flex min-h-[calc(100vh-73px)] items-center overflow-hidden border-b border-border">
+        <div className="mx-auto w-full max-w-4xl px-6 py-20">
+          <div className="text-center">
             <div className="mb-6 inline-flex items-center gap-2">
               <div className="h-1.5 w-1.5 rounded-full bg-[#3FD6D0]" />
-              <span className="text-sm uppercase tracking-wider text-muted-foreground">
-                Sentra Intelligence Platform
-              </span>
+              <span className="text-sm uppercase tracking-wider text-muted-foreground">Start with a live question</span>
             </div>
 
-            <h1 className="mb-6 text-5xl leading-tight md:text-6xl lg:text-7xl" style={{ fontWeight: 300 }}>
-              KNOW THE MOOD
-              <br />
-              BEFORE THE
-              <br />
-              HEADLINES HIT
+            <h1 className="mx-auto mb-4 max-w-3xl text-4xl leading-tight md:text-5xl" style={{ fontWeight: 300 }}>
+              Ask Sentra what the public is saying now
             </h1>
 
-            <p className="mb-10 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-              Data identifies shifts in sentiment, visibility, and influence across social and media channels.
+            <p className="mx-auto mb-8 max-w-2xl text-base leading-relaxed text-muted-foreground md:text-lg">
+              Type one question to test Sentra. We will prompt sign in when you are ready to run it.
             </p>
+          </div>
 
-            <div className="flex flex-wrap gap-4">
+          <div className="mx-auto w-full max-w-3xl rounded-xl border border-border bg-card/70 p-4 backdrop-blur">
+            <form onSubmit={handleLandingSubmit} className="flex items-center gap-3">
+              <input
+                aria-label="Query"
+                value={landingDraftMessage}
+                onChange={(event) => onLandingDraftChange(event.target.value)}
+                placeholder="Ask your monitoring question..."
+                className="h-12 flex-1 rounded border border-border bg-background px-4 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-[#3FD6D0]"
+              />
+              <button
+                type="submit"
+                aria-label="Send"
+                disabled={!landingDraftMessage.trim()}
+                className="inline-flex h-12 w-12 items-center justify-center rounded bg-[#3FD6D0] text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <Send className="h-4 w-4" />
+              </button>
+            </form>
+
+            <div className="mt-4 flex flex-wrap gap-2">
+              {examplePrompts.map((prompt) => (
+                <button
+                  key={prompt}
+                  type="button"
+                  onClick={() => onSelectExample(prompt)}
+                  className="rounded-full border border-border bg-background px-3 py-1.5 text-xs text-muted-foreground transition-colors hover:border-[#3FD6D0] hover:text-foreground"
+                >
+                  {prompt}
+                </button>
+              ))}
+            </div>
+
+            <div className="mt-5 flex flex-wrap justify-center gap-4">
               <button
                 type="button"
                 onClick={onGetStarted}
-                className="flex items-center gap-2 rounded bg-[#3FD6D0] px-6 py-3 text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90"
+                className="flex items-center gap-2 rounded bg-[#3FD6D0] px-5 py-2.5 text-sm text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90"
               >
                 Get Started
                 <ArrowRight className="h-4 w-4" />
@@ -144,7 +195,7 @@ export function LandingPage({ onGetStarted, onViewSample }: LandingPageProps) {
               <button
                 type="button"
                 onClick={onViewSample}
-                className="rounded border border-border px-6 py-3 transition-colors hover:border-[#3FD6D0]"
+                className="rounded border border-border px-5 py-2.5 text-sm transition-colors hover:border-[#3FD6D0]"
               >
                 View Sample Report
               </button>

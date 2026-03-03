@@ -10,7 +10,8 @@ describe('route entry points', () => {
   it('renders landing flow on root route', () => {
     window.history.pushState({}, '', '/');
     render(<App />);
-    expect(screen.getByText(/know the mood/i)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /ask sentra what the public is saying now/i })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /query/i })).toBeInTheDocument();
   });
 
   it('renders auth flow on login route', () => {

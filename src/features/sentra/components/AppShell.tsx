@@ -12,6 +12,7 @@ import {
 import { streamConversationMessage } from '@/features/sentra/api/conversationStream';
 import { getJob } from '@/features/sentra/api/jobs';
 import { ConversationPanel, type ChatBubble } from '@/features/sentra/components/chat/ConversationPanel';
+import { AuthDialog } from '@/features/sentra/components/AuthDialog';
 import { AuthPage } from '@/features/sentra/components/AuthPage';
 import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
 import { LandingPage } from '@/features/sentra/components/LandingPage';
@@ -179,6 +180,9 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     if (initialView === 'auth') {
       return isAuthenticated ? 'app' : 'auth';
     }
+    if (initialView === 'landing' && window.location.pathname === '/' && isAuthenticated) {
+      return 'app';
+    }
     return initialView;
   });
   const [state, setState] = useState<AppState>('idle');
@@ -198,6 +202,15 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   const [isRetryingJob, setIsRetryingJob] = useState(false);
   const [isDeletingChatId, setIsDeletingChatId] = useState<string | null>(null);
   const [recentChatsError, setRecentChatsError] = useState<string | null>(null);
+  const [landingDraftMessage, setLandingDraftMessage] = useState('');
+  const [pendingLandingSend, setPendingLandingSend] = useState<string | null>(null);
+  const [isAuthDialogOpen, setIsAuthDialogOpen] = useState(false);
+
+  const landingExamplePrompts = [
+    'Track pension reform sentiment in Romania this week',
+    'What narrative risks are rising around healthcare funding?',
+    'Compare support sentiment for the top two mayoral candidates',
+  ];
 
   useEffect(() => {
     if (!adminDemoMode) {
@@ -223,6 +236,11 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   }, [adminDemoMode]);
 
   useEffect(() => {
+    if (currentView === 'landing' && isAuthenticated && window.location.pathname === '/') {
+      syncPath('/chat');
+      setCurrentView('app');
+      return;
+    }
     if (currentView === 'app' && !isAuthenticated) {
       setCurrentView('auth');
     }
@@ -235,6 +253,10 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     const pathname = window.location.pathname;
     if (currentView === 'auth' && !isAuthPath(pathname)) {
       syncPath('/login');
+      return;
+    }
+    if (currentView === 'app' && pathname === '/') {
+      syncPath('/chat');
       return;
     }
     if (currentView === 'app' && isAuthPath(pathname)) {
@@ -276,8 +298,15 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   };
 
   const handleAuthenticate = () => {
+    setIsAuthDialogOpen(false);
     syncPath('/chat');
     setCurrentView('app');
+    const queued = pendingLandingSend?.trim();
+    setPendingLandingSend(null);
+    if (queued) {
+      setLandingDraftMessage('');
+      void handleSendMessage(queued);
+    }
   };
 
   const handleViewSample = () => {
@@ -292,6 +321,32 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
     setJobProgress(null);
     setChatMessages([]);
     setCurrentChatId(undefined);
+  };
+
+  const handleLandingTrySend = (message: string) => {
+    const trimmed = message.trim();
+    if (!trimmed) {
+      return;
+    }
+
+    if (!isAuthenticated) {
+      setPendingLandingSend(trimmed);
+      setIsAuthDialogOpen(true);
+      return;
+    }
+
+    setPendingLandingSend(null);
+    setLandingDraftMessage('');
+    syncPath('/chat');
+    setCurrentView('app');
+    void handleSendMessage(trimmed);
+  };
+
+  const handleAuthDialogOpenChange = (open: boolean) => {
+    setIsAuthDialogOpen(open);
+    if (!open) {
+      setPendingLandingSend(null);
+    }
   };
 
   const handleOpenDemo = () => {
@@ -816,7 +871,20 @@ export function AppShell({ initialView = 'landing', processingDelayMs = 3000, ad
   }, []);
 
   if (currentView === 'landing') {
-    return <LandingPage onGetStarted={handleGetStarted} onViewSample={handleViewSample} />;
+    return (
+      <>
+        <LandingPage
+          onGetStarted={handleGetStarted}
+          onViewSample={handleViewSample}
+          landingDraftMessage={landingDraftMessage}
+          onLandingDraftChange={setLandingDraftMessage}
+          onTrySend={handleLandingTrySend}
+          examplePrompts={landingExamplePrompts}
+          onSelectExample={setLandingDraftMessage}
+        />
+        <AuthDialog open={isAuthDialogOpen} onOpenChange={handleAuthDialogOpenChange} onAuthenticate={handleAuthenticate} />
+      </>
+    );
   }
 
   if (currentView === 'auth') {
