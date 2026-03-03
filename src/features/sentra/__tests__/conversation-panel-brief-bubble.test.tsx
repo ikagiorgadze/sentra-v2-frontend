@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { ConversationPanel } from '@/features/sentra/components/chat/ConversationPanel';
 
 describe('conversation panel brief bubble', () => {
-  it('renders intelligence brief content for assistant brief bubbles', () => {
+  it('renders analysis results document for assistant brief bubbles', () => {
     render(
       <ConversationPanel
         messages={[
@@ -25,6 +25,7 @@ describe('conversation panel brief bubble', () => {
       />,
     );
 
-    expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+    expect(screen.getByTestId('chat-analysis-results-document')).toBeInTheDocument();
+    expect(screen.getByText(/executive key metrics/i)).toBeInTheDocument();
   });
 });

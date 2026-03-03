@@ -409,7 +409,7 @@ describe('chat confirmation flow', () => {
     await user.click(screen.getByRole('button', { name: /use existing/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+      expect(screen.getByText(/executive key metrics/i)).toBeInTheDocument();
     });
 
     expect(confirmPayload).toMatchObject({
@@ -538,7 +538,7 @@ describe('chat confirmation flow', () => {
     await user.keyboard('{Enter}');
 
     await waitFor(() => {
-      expect(screen.getByTestId('chat-intelligence-brief')).toBeInTheDocument();
+      expect(screen.getByTestId('chat-analysis-results-document')).toBeInTheDocument();
     });
     expect(screen.queryByText(/confirm query/i)).not.toBeInTheDocument();
     expect(calledUrls.some((url) => url.includes('/confirm-job'))).toBe(false);

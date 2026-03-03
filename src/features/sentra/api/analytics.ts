@@ -52,6 +52,12 @@ export interface SentimentExamplesResponse {
   items: SentimentExampleItem[];
 }
 
+export interface AnalysisDocumentResponse {
+  job_id: string;
+  meta: Record<string, unknown>;
+  sections: Record<string, unknown>;
+}
+
 async function parseError(response: Response): Promise<string> {
   try {
     const payload = (await response.json()) as { detail?: string };
@@ -87,3 +93,6 @@ export const getSentimentByTopic = (jobId: string): Promise<SentimentByTopicResp
 
 export const getSentimentExamples = (jobId: string, limit = 20): Promise<SentimentExamplesResponse> =>
   getJson<SentimentExamplesResponse>(`/v1/jobs/${jobId}/sentiment-examples?limit=${limit}`);
+
+export const getAnalysisDocument = (jobId: string): Promise<AnalysisDocumentResponse> =>
+  getJson<AnalysisDocumentResponse>(`/v1/jobs/${jobId}/analysis-document`);
