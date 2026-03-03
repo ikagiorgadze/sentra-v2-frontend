@@ -99,6 +99,11 @@ function textPreview(text: string): string {
   return `${text.slice(0, TEXT_PREVIEW_CHARS).trimEnd()}...`;
 }
 
+function sectionMetrics(section: Record<string, unknown>): Record<string, unknown> {
+  const nested = asRecord(section.metrics);
+  return Object.keys(nested).length > 0 ? nested : section;
+}
+
 function createDefaultSections(query: string): Record<SectionKey, Record<string, unknown>> {
   return {
     cover: {
@@ -591,31 +596,32 @@ function renderConclusion(section: Record<string, unknown>): ReactNode {
 }
 
 function renderSection(key: SectionKey, section: Record<string, unknown>, campaignName: string): ReactNode {
+  const normalized = sectionMetrics(section);
   switch (key) {
     case 'cover':
-      return renderCover(section, campaignName);
+      return renderCover(normalized, campaignName);
     case 'executive_key_metrics':
-      return renderExecutive(section);
+      return renderExecutive(normalized);
     case 'sentiment_emotional_distribution':
-      return renderSentimentEmotion(section);
+      return renderSentimentEmotion(normalized);
     case 'stance_distribution_analysis':
-      return renderStanceDistribution(section);
+      return renderStanceDistribution(normalized);
     case 'stance_drivers':
-      return renderStanceDrivers(section);
+      return renderStanceDrivers(normalized);
     case 'negative_reception_analysis':
-      return renderNegativeReception(section);
+      return renderNegativeReception(normalized);
     case 'topic_cluster_analysis':
-      return renderTopicCluster(section);
+      return renderTopicCluster(normalized);
     case 'engagement_decay_curve':
-      return renderEngagement(section);
+      return renderEngagement(normalized);
     case 'audience_behavior_insights':
-      return renderAudienceBehavior(section);
+      return renderAudienceBehavior(normalized);
     case 'ai_strategic_insight_summary':
-      return renderStrategicInsight(section);
+      return renderStrategicInsight(normalized);
     case 'campaign_predictions':
-      return renderPredictions(section);
+      return renderPredictions(normalized);
     case 'strategic_conclusion':
-      return renderConclusion(section);
+      return renderConclusion(normalized);
     default:
       return null;
   }

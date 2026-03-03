@@ -116,6 +116,55 @@ describe('analysis results document backend', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
+  it('renders materialized metrics wrappers from backend sections', async () => {
+    clearAccessToken();
+    setAccessToken(makeToken(3600));
+
+    vi.spyOn(global, 'fetch').mockResolvedValueOnce(
+      new Response(
+        JSON.stringify({
+          job_id: '120d6e13-9f74-42bb-9fff-395a7f4f5f00',
+          meta: { campaign_name: 'Tesla Model Y Launch Campaign', analysis_document_version: 2 },
+          sections: {
+            cover: { metrics: { title: 'Analysis Results Document', campaign_name: 'Tesla Model Y Launch Campaign' } },
+            executive_key_metrics: {
+              metrics: {
+                total_mentions: 10,
+                engagement_rate: 44,
+                net_sentiment_score: 20,
+                dominant_topic: 'pricing',
+                summary: 'Stored summary',
+              },
+            },
+            sentiment_emotional_distribution: { metrics: { sentiment: { positive: 4, neutral: 3, negative: 3 }, emotion: {} } },
+            stance_distribution_analysis: { metrics: {} },
+            stance_drivers: { metrics: {} },
+            negative_reception_analysis: { metrics: {} },
+            topic_cluster_analysis: { metrics: {} },
+            engagement_decay_curve: { metrics: {} },
+            audience_behavior_insights: { metrics: {} },
+            ai_strategic_insight_summary: { metrics: {} },
+            campaign_predictions: { metrics: {} },
+            strategic_conclusion: { metrics: {} },
+          },
+        }),
+        { status: 200, headers: { 'Content-Type': 'application/json' } },
+      ),
+    );
+
+    render(
+      <AnalysisResultsDocument
+        query="Tesla model y sentiment"
+        jobId="120d6e13-9f74-42bb-9fff-395a7f4f5f00"
+      />,
+    );
+
+    expect(await screen.findByText(/executive key metrics/i)).toBeInTheDocument();
+    expect(screen.getByText('10')).toBeInTheDocument();
+    expect(screen.getByText(/44%/i)).toBeInTheDocument();
+    expect(screen.getByText('pricing')).toBeInTheDocument();
+  });
+
   it('collapses long concrete quote examples behind a read more toggle', async () => {
     clearAccessToken();
     setAccessToken(makeToken(3600));
