@@ -22,18 +22,22 @@ npm install
 ```bash
 cp .env.example .env
 ```
-3. Set backend base URL in `.env`:
+3. (Optional) Set backend base URL override in `.env`:
 ```bash
-VITE_API_BASE_URL="http://localhost:8000"
+VITE_API_BASE_URL=""
 ```
 4. Start the app:
 ```bash
 npm run dev
 ```
 5. Open frontend:
-- `http://localhost:5173`
+- `http://localhost:8080` (or your configured dev port, e.g. `8081`)
 
-Default API target is your `.env` value (`VITE_API_BASE_URL`).
+Default API mode is proxy-first:
+- frontend calls relative `/v1/*`
+- Vite proxies `/v1` to `http://127.0.0.1:8000`
+
+Set `VITE_API_BASE_URL` only when you explicitly want a direct backend origin (for example a deployed API).
 
 ## Local Run Order (Backend + Frontend)
 1. Start backend infra and API first (from backend repo):
@@ -130,11 +134,14 @@ npm run build
   - Backend DB credentials in backend `.env` do not match `docker-compose.yml`.
   - Use backend DB URLs for `sentra:sentra@localhost:5432/sentra`, then rerun migrations.
 - CORS errors in browser:
-  - Ensure backend `.env` includes `CORS_ALLOWED_ORIGINS=http://localhost:5173`.
+  - If using direct backend origin (`VITE_API_BASE_URL` set), ensure backend `.env` includes your frontend origin in `CORS_ALLOWED_ORIGINS`.
+  - Example for local frontend dev: `CORS_ALLOWED_ORIGINS=http://localhost:8080`.
   - Restart backend after env changes.
 - Network errors in UI:
-  - Verify `VITE_API_BASE_URL` points to a running backend.
+  - If using proxy-first mode, verify frontend dev server is running and backend responds at `http://localhost:8000/v1/health`.
+  - If using direct backend mode, verify `VITE_API_BASE_URL` points to a running backend.
   - Verify backend health endpoint responds (`http://localhost:8000/v1/health`).
 - Frontend starts but login/signup does nothing:
   - Check browser devtools Network tab for `/v1/auth/login` or `/v1/auth/signup` failures.
-  - Confirm backend is on the same base URL as `VITE_API_BASE_URL`.
+  - In proxy-first mode, confirm `vite.config.ts` has `/v1` proxy to `http://127.0.0.1:8000`.
+  - In direct mode, confirm backend is on the same base URL as `VITE_API_BASE_URL`.

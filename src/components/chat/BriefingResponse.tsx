@@ -3,7 +3,6 @@ import { ExecutiveSummary } from "./ExecutiveSummary";
 import { SentimentChart } from "./SentimentChart";
 import { TrendLineChart } from "@/components/charts/TrendLineChart";
 import { NarrativeClusters } from "./NarrativeClusters";
-import { EntityInsights } from "./EntityInsights";
 import { RiskSignals } from "./RiskSignals";
 import { EvidenceTable } from "./EvidenceTable";
 import { SuggestionChips } from "./SuggestionChips";
@@ -27,7 +26,6 @@ export const BriefingResponse = ({ data, onSuggestionSelect }: BriefingResponseP
       </div>
     </Card>
     <NarrativeClusters clusters={data.narrativeClusters} />
-    <EntityInsights entities={data.entityInsights} />
     <RiskSignals risks={data.riskSignals} />
     <EvidenceTable evidence={data.evidenceTable} />
     <SuggestionChips suggestions={data.suggestions} onSelect={onSuggestionSelect} />

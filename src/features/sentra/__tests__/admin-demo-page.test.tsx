@@ -14,13 +14,15 @@ describe('admin demo page', () => {
     expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
   });
 
-  it('shows proposal card and transitions to running/results based on demo steps', async () => {
+  it('plays pinned job flow and renders report in normal chat bubble', async () => {
     const user = userEvent.setup();
 
     render(<AdminDemoPage />);
 
-    await user.selectOptions(screen.getByLabelText(/scenario/i), 'iphone-rival-campaign');
+    await user.selectOptions(screen.getByLabelText(/scenario/i), 'job-047b7d78-50a8-4027-84eb-7979356949bf');
+    expect(screen.getByRole('option', { name: 'არ გაჩერდე' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /next step/i }));
+    expect(screen.getByText(/sentra რა არის\?/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /next step/i }));
     await user.click(screen.getByRole('button', { name: /next step/i }));
     await user.click(screen.getByRole('button', { name: /next step/i }));
@@ -32,10 +34,9 @@ describe('admin demo page', () => {
 
     await user.click(screen.getByRole('button', { name: /^confirm$/i }));
     await user.click(screen.getByRole('button', { name: /next step/i }));
-    expect(screen.getByText(/collecting public discourse/i)).toBeInTheDocument();
+    expect(screen.getByText(/საჯარო დისკურსის შეგროვება/i)).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: /next step/i }));
-    expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
-
+    expect(screen.getByTestId('chat-analysis-results-document')).toBeInTheDocument();
   });
 });

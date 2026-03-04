@@ -260,7 +260,7 @@ export function AppShell({
       return;
     }
 
-    if (getTokenRole(token) !== 'admin') {
+    if (adminUsageMode && getTokenRole(token) !== 'admin') {
       syncPath('/chat');
       setCurrentView('app');
       return;
@@ -978,7 +978,7 @@ export function AppShell({
   }
 
   const pathname = window.location.pathname;
-  const shouldRenderAdminDemo = (adminDemoMode || pathname === '/admin/demo') && isAdminUser;
+  const shouldRenderAdminDemo = adminDemoMode || pathname === '/admin/demo';
   const shouldRenderAdminUsageList = adminUsageMode === 'list' && pathname === '/admin/users/usage';
   const shouldRenderAdminUsageDetail =
     adminUsageMode === 'detail' && pathname.startsWith('/admin/users/usage/');

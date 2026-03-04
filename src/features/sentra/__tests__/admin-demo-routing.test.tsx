@@ -31,7 +31,7 @@ describe('admin demo routing', () => {
     expect(window.location.pathname).toBe('/admin/demo');
   });
 
-  it('redirects non-admin users from /admin/demo to /chat', async () => {
+  it('allows non-admin users to open /admin/demo', async () => {
     clearAccessToken();
     setAccessToken(makeToken('user'));
     window.history.pushState({}, '', '/admin/demo');
@@ -39,9 +39,9 @@ describe('admin demo routing', () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/chat');
+      expect(window.location.pathname).toBe('/admin/demo');
     });
-    expect(screen.getByText(/sentra conversational analyst/i)).toBeInTheDocument();
+    expect(await screen.findByLabelText(/scenario/i)).toBeInTheDocument();
   });
 
   it('opens admin demo immediately when clicking demo from /chat', async () => {

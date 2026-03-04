@@ -1,9 +1,7 @@
 import { useMemo } from 'react';
 
 import { ConversationPanel } from '@/features/sentra/components/chat/ConversationPanel';
-import { IntelligenceBrief } from '@/features/sentra/components/IntelligenceBrief';
 import { RightPanel } from '@/features/sentra/components/RightPanel';
-import { RunningState } from '@/features/sentra/components/RunningState';
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { useDemoConversation } from '@/features/sentra/demo/useDemoConversation';
 import type { DemoScenario } from '@/features/sentra/demo/types';
@@ -14,6 +12,13 @@ interface AdminDemoPageProps {
 
 export function AdminDemoPage({ scenarios }: AdminDemoPageProps) {
   const controller = useDemoConversation({ scenarios });
+  const demoJobProgress =
+    controller.appState === 'running'
+      ? {
+          statusLabel: 'running',
+          stageLabel: 'საჯარო დისკურსის შეგროვება',
+        }
+      : null;
 
   const scenarioOptions = useMemo(
     () =>
@@ -97,23 +102,16 @@ export function AdminDemoPage({ scenarios }: AdminDemoPageProps) {
           )}
         </div>
 
-        {controller.appState === 'idle' && (
-          <ConversationPanel
-            messages={controller.messages}
-            pendingProposal={controller.pendingProposal}
-            onSend={() => undefined}
-            onStartNewProposal={controller.confirmProposal}
-            onUseExistingProposal={() => undefined}
-            onEditProposal={() => undefined}
-            hideComposer
-          />
-        )}
-
-        {controller.appState === 'running' && <RunningState />}
-
-        {controller.appState === 'results' && (
-          <IntelligenceBrief query={controller.analysisPayload.query || controller.query} />
-        )}
+        <ConversationPanel
+          messages={controller.messages}
+          pendingProposal={controller.pendingProposal}
+          jobProgress={demoJobProgress}
+          onSend={() => undefined}
+          onStartNewProposal={controller.confirmProposal}
+          onUseExistingProposal={() => undefined}
+          onEditProposal={() => undefined}
+          hideComposer
+        />
       </div>
 
       <RightPanel />

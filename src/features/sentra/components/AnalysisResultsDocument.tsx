@@ -16,7 +16,6 @@ const SECTION_DEFS = [
   { key: 'negative_reception_analysis', title: 'Negative Reception Analysis' },
   { key: 'topic_cluster_analysis', title: 'Topic Cluster Analysis' },
   { key: 'engagement_decay_curve', title: 'Engagement Decay Curve' },
-  { key: 'influencer_impact_analysis', title: 'Influencer Impact Analysis' },
   { key: 'audience_behavior_insights', title: 'Audience Behavior Insights' },
   { key: 'ai_strategic_insight_summary', title: 'AI Strategic Insight Summary' },
   { key: 'campaign_predictions', title: 'Campaign Predictions' },
@@ -142,10 +141,6 @@ function createDefaultSections(query: string): Record<SectionKey, Record<string,
     engagement_decay_curve: {
       daily_metrics: [],
       sentiment_timeseries: [],
-    },
-    influencer_impact_analysis: {
-      influencers: [],
-      engagement_concentration_ratio: 0,
     },
     audience_behavior_insights: {
       platform_sentiment: [],
@@ -519,28 +514,6 @@ function renderEngagement(section: Record<string, unknown>): ReactNode {
   );
 }
 
-function renderInfluencer(section: Record<string, unknown>): ReactNode {
-  const influencers = asObjectList(section.influencers);
-  return (
-    <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">
-        Engagement concentration ratio: {formatPercent(section.engagement_concentration_ratio)}
-      </p>
-      <div className="space-y-2">
-        {influencers.length === 0 && <p className="text-sm text-muted-foreground">No influencer data available.</p>}
-        {influencers.slice(0, 8).map((item, index) => (
-          <div key={`${asString(item.actor_name, 'unknown')}-${index}`} className="flex items-center justify-between gap-2 overflow-hidden rounded-md border border-border bg-background/60 p-2 text-sm">
-            <span className="break-words">{asString(item.actor_name, 'unknown')}</span>
-            <span className="break-words text-muted-foreground">
-              {asNumber(item.mentions)} mentions · {asNumber(item.engagement)} engagement
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 function renderAudienceBehavior(section: Record<string, unknown>): ReactNode {
   const platformSentiment = asObjectList(section.platform_sentiment);
   const highIntentSignals = asObjectList(section.high_intent_signals);
@@ -635,8 +608,6 @@ function renderSection(key: SectionKey, section: Record<string, unknown>, campai
       return renderTopicCluster(section);
     case 'engagement_decay_curve':
       return renderEngagement(section);
-    case 'influencer_impact_analysis':
-      return renderInfluencer(section);
     case 'audience_behavior_insights':
       return renderAudienceBehavior(section);
     case 'ai_strategic_insight_summary':

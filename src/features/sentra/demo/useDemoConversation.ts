@@ -28,6 +28,18 @@ function makeUserBubble(content: string): ChatBubble {
   };
 }
 
+function makeAssistantBriefBubble(query: string, jobId?: string): ChatBubble {
+  return {
+    id: crypto.randomUUID(),
+    role: 'assistant',
+    kind: 'assistant_brief',
+    payload: {
+      query,
+      jobId,
+    },
+  };
+}
+
 function toPendingProposal(step: Extract<DemoStep, { type: 'proposal_ready' }>): ConversationProposalRecord {
   const now = new Date().toISOString();
   return {
@@ -239,12 +251,20 @@ export function useDemoConversation(options: DemoConversationOptions = {}): Demo
 
     if (step.type === 'job_complete') {
       setAppState('results');
+      const reportQuery = activeScenario.analysisPayload.query || query;
+      const reportJobId = currentJobId;
+      setMessages((prev) => {
+        if (prev.some((bubble) => bubble.kind === 'assistant_brief' && bubble.payload.jobId === reportJobId)) {
+          return prev;
+        }
+        return [...prev, makeAssistantBriefBubble(reportQuery, reportJobId)];
+      });
       cursorRef.current += 1;
       if (isPlaying) {
         scheduleAutoStep(nextStep);
       }
     }
-  }, [flushStreamToEnd, isPlaying, isScenarioValid, pendingProposal, scenario, scheduleAutoStep, tickStream]);
+  }, [currentJobId, flushStreamToEnd, isPlaying, isScenarioValid, pendingProposal, query, scenario, scheduleAutoStep, tickStream]);
 
   const reset = useCallback(() => {
     clearStepTimer();
@@ -292,7 +312,7 @@ export function useDemoConversation(options: DemoConversationOptions = {}): Demo
       return;
     }
     setPendingProposal(null);
-    setMessages((prev) => [...prev, makeAssistantBubble('Confirmed. Creating your monitoring job now.')]);
+    setMessages((prev) => [...prev, makeAssistantBubble('დადასტურდა. მონიტორინგის დავალებას ახლა ვქმნი.')]);
     setIsPlaying(true);
   }, [isScenarioValid]);
 

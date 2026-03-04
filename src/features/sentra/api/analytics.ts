@@ -42,6 +42,8 @@ export interface SentimentExampleItem {
   text: string;
   sentiment: string;
   score: number;
+  confidence?: number | null;
+  low_confidence?: boolean | null;
   source?: string | null;
   source_url?: string | null;
   timestamp?: string | null;

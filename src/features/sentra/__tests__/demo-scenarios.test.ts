@@ -26,4 +26,28 @@ describe('demo scenarios', () => {
     expect(alphaScenario!.analysisPayload.query).toContain('everybody makes mistakes');
     expect(alphaScenario!.analysisPayload.summary).toContain('everybody makes mistakes');
   });
+
+  it('includes pinned demo scenario for job 047b7d78-50a8-4027-84eb-7979356949bf', () => {
+    const pinned = DEMO_SCENARIOS.find(
+      (scenario) => scenario.id === 'job-047b7d78-50a8-4027-84eb-7979356949bf',
+    );
+    expect(pinned).toBeDefined();
+
+    const jobStep = pinned!.script.find((step) => step.type === 'job_start');
+    expect(jobStep).toBeDefined();
+    if (jobStep?.type === 'job_start') {
+      expect(jobStep.jobId).toBe('047b7d78-50a8-4027-84eb-7979356949bf');
+    }
+
+    expect(pinned!.name).toBe('არ გაჩერდე');
+
+    const scriptText = pinned!.script
+      .map((step) => ('content' in step ? step.content : 'normalizedQuery' in step ? step.normalizedQuery : ''))
+      .join(' ');
+
+    expect(scriptText).toContain('Sentra');
+    expect(scriptText).toContain('საქართველოს ბანკი');
+    expect(scriptText).toContain('არ გაჩერდე');
+    expect(scriptText).toContain('ბოლო ერთი წლის');
+  });
 });
