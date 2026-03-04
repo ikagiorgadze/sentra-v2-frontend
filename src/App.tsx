@@ -6,6 +6,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect } from "react";
 import { ScrollToTop } from "@/components/ScrollToTop";
 import { AppShell } from "@/features/sentra/components/AppShell";
+import { CheckoutPlaceholderPage } from "@/features/sentra/components/CheckoutPlaceholderPage";
+import { PricingPage } from "@/features/sentra/components/PricingPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -42,6 +44,8 @@ const App = () => {
             <Route path="/terms" element={<AppShell initialView="landing" />} />
             <Route path="/contact" element={<AppShell initialView="landing" />} />
             <Route path="/cookies" element={<AppShell initialView="landing" />} />
+            <Route path="/pricing" element={<PricingPage />} />
+            <Route path="/checkout" element={<CheckoutPlaceholderPage />} />
 
             <Route path="*" element={<NotFound />} />
           </Routes>
