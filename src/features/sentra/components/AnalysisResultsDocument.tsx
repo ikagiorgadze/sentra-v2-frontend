@@ -50,6 +50,8 @@ interface ChartDatum {
   value: number;
 }
 
+const TEXT_PREVIEW_CHARS = 220;
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
@@ -85,6 +87,17 @@ function asStringList(value: unknown): string[] {
 function formatPercent(value: unknown): string {
   const parsed = asNumber(value);
   return `${Math.round(parsed)}%`;
+}
+
+function shouldCollapseText(text: string): boolean {
+  return text.length > TEXT_PREVIEW_CHARS;
+}
+
+function textPreview(text: string): string {
+  if (!shouldCollapseText(text)) {
+    return text;
+  }
+  return `${text.slice(0, TEXT_PREVIEW_CHARS).trimEnd()}...`;
 }
 
 function createDefaultSections(query: string): Record<SectionKey, Record<string, unknown>> {
@@ -233,8 +246,59 @@ function renderCover(section: Record<string, unknown>, campaignName: string): Re
   return (
     <div className="space-y-2">
       <p className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{asString(section.title, 'Analysis Results Document')}</p>
-      <p className="text-xl font-semibold text-foreground">{asString(section.campaign_name, campaignName)}</p>
+      <p className="text-xl font-semibold text-foreground break-words">{asString(section.campaign_name, campaignName)}</p>
     </div>
+  );
+}
+
+function CollapsibleText({
+  text,
+  fallback = '—',
+  className = 'text-sm text-muted-foreground break-words',
+}: {
+  text: string;
+  fallback?: string;
+  className?: string;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const normalized = text.trim();
+  const safeText = normalized || fallback;
+  const collapsible = shouldCollapseText(safeText);
+  const displayText = collapsible && !expanded ? textPreview(safeText) : safeText;
+
+  return (
+    <div className="overflow-hidden">
+      <p className={className}>{displayText}</p>
+      {collapsible && (
+        <button
+          type="button"
+          onClick={() => setExpanded((current) => !current)}
+          className="mt-2 rounded border border-border px-2 py-1 text-xs text-foreground/80 hover:bg-background/80"
+        >
+          {expanded ? 'Read less' : 'Read more'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function CollapsibleStringList({
+  items,
+  emptyMessage,
+}: {
+  items: string[];
+  emptyMessage: string;
+}) {
+  return (
+    <ul className="space-y-1 text-sm">
+      {items.length === 0 && <li className="text-muted-foreground">{emptyMessage}</li>}
+      {items.map((item) => (
+        <li key={item} className="break-words">
+          <span aria-hidden="true">• </span>
+          <CollapsibleText text={item} className="inline text-sm break-words" />
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -250,13 +314,13 @@ function renderExecutive(section: Record<string, unknown>): ReactNode {
     <div className="space-y-3">
       <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
         {metrics.map((metric) => (
-          <div key={metric.label} className="rounded-md border border-border bg-background/60 p-3">
+          <div key={metric.label} className="overflow-hidden rounded-md border border-border bg-background/60 p-3">
             <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">{metric.label}</p>
-            <p className="mt-1 text-base font-semibold">{metric.value}</p>
+            <p className="mt-1 break-words text-base font-semibold">{metric.value}</p>
           </div>
         ))}
       </div>
-      <p className="text-sm text-muted-foreground">{asString(section.summary, 'No summary available.')}</p>
+      <CollapsibleText text={asString(section.summary, 'No summary available.')} />
     </div>
   );
 }
@@ -320,21 +384,44 @@ function renderStanceDistribution(section: Record<string, unknown>): ReactNode {
   );
 }
 
-function renderQuoteList(rows: Record<string, unknown>[]): ReactNode {
+function QuoteList({
+  rows,
+  emptyMessage = 'No representative quotes available.',
+}: {
+  rows: Record<string, unknown>[];
+  emptyMessage?: string;
+}) {
+  const [expandedRows, setExpandedRows] = useState<Record<number, boolean>>({});
+
   if (rows.length === 0) {
-    return <p className="text-sm text-muted-foreground">No representative quotes available.</p>;
+    return <p className="text-sm text-muted-foreground">{emptyMessage}</p>;
   }
 
   return (
     <div className="space-y-2">
-      {rows.slice(0, 5).map((row, index) => (
-        <blockquote key={`${asString(row.text, '')}-${index}`} className="rounded-md border border-border bg-background/60 p-3">
-          <p className="text-sm">{asString(row.text, '')}</p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {asString(row.sentiment, 'neutral')} · {asString(row.source, 'unknown')}
-          </p>
-        </blockquote>
-      ))}
+      {rows.slice(0, 5).map((row, index) => {
+        const fullText = asString(row.text, '').trim();
+        const expanded = Boolean(expandedRows[index]);
+        const collapsible = shouldCollapseText(fullText);
+        const displayText = collapsible && !expanded ? textPreview(fullText) : fullText;
+        return (
+          <blockquote key={`${asString(row.text, '')}-${index}`} className="overflow-hidden rounded-md border border-border bg-background/60 p-3">
+            <p className="break-words text-sm">{displayText || '—'}</p>
+            {collapsible && (
+              <button
+                type="button"
+                onClick={() => setExpandedRows((current) => ({ ...current, [index]: !current[index] }))}
+                className="mt-2 rounded border border-border px-2 py-1 text-xs text-foreground/80 hover:bg-background/80"
+              >
+                {expanded ? 'Read less' : 'Read more'}
+              </button>
+            )}
+            <p className="mt-1 text-xs text-muted-foreground">
+              {asString(row.sentiment, 'neutral')} · {asString(row.source, 'unknown')}
+            </p>
+          </blockquote>
+        );
+      })}
     </div>
   );
 }
@@ -348,21 +435,15 @@ function renderStanceDrivers(section: Record<string, unknown>): ReactNode {
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Support Themes</p>
-        <ul className="space-y-1 text-sm">
-          {supportThemes.length === 0 && <li className="text-muted-foreground">No support themes available.</li>}
-          {supportThemes.map((theme) => <li key={theme}>• {theme}</li>)}
-        </ul>
+        <CollapsibleStringList items={supportThemes} emptyMessage="No support themes available." />
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Opposition Themes</p>
-        <ul className="space-y-1 text-sm">
-          {oppositionThemes.length === 0 && <li className="text-muted-foreground">No opposition themes available.</li>}
-          {oppositionThemes.map((theme) => <li key={theme}>• {theme}</li>)}
-        </ul>
+        <CollapsibleStringList items={oppositionThemes} emptyMessage="No opposition themes available." />
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Representative Quotes</p>
-        {renderQuoteList(representativeQuotes)}
+        <QuoteList rows={representativeQuotes} />
       </div>
     </div>
   );
@@ -379,8 +460,8 @@ function renderNegativeReception(section: Record<string, unknown>): ReactNode {
         <ul className="space-y-2 text-sm">
           {topNegativeTopics.length === 0 && <li className="text-muted-foreground">No negative topics available.</li>}
           {topNegativeTopics.slice(0, 5).map((topic, index) => (
-            <li key={`${asString(topic.topic, 'unknown')}-${index}`} className="flex items-center justify-between">
-              <span>{asString(topic.topic, 'unknown')}</span>
+            <li key={`${asString(topic.topic, 'unknown')}-${index}`} className="flex items-center justify-between gap-2">
+              <span className="break-words">{asString(topic.topic, 'unknown')}</span>
               <span className="text-muted-foreground">{asNumber(topic.mentions)}</span>
             </li>
           ))}
@@ -388,7 +469,7 @@ function renderNegativeReception(section: Record<string, unknown>): ReactNode {
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Outlier Signals</p>
-        {renderQuoteList(outlierSignals)}
+        <QuoteList rows={outlierSignals} emptyMessage="No outlier signals available." />
       </div>
     </div>
   );
@@ -448,9 +529,9 @@ function renderInfluencer(section: Record<string, unknown>): ReactNode {
       <div className="space-y-2">
         {influencers.length === 0 && <p className="text-sm text-muted-foreground">No influencer data available.</p>}
         {influencers.slice(0, 8).map((item, index) => (
-          <div key={`${asString(item.actor_name, 'unknown')}-${index}`} className="flex items-center justify-between rounded-md border border-border bg-background/60 p-2 text-sm">
-            <span>{asString(item.actor_name, 'unknown')}</span>
-            <span className="text-muted-foreground">
+          <div key={`${asString(item.actor_name, 'unknown')}-${index}`} className="flex items-center justify-between gap-2 overflow-hidden rounded-md border border-border bg-background/60 p-2 text-sm">
+            <span className="break-words">{asString(item.actor_name, 'unknown')}</span>
+            <span className="break-words text-muted-foreground">
               {asNumber(item.mentions)} mentions · {asNumber(item.engagement)} engagement
             </span>
           </div>
@@ -476,7 +557,7 @@ function renderAudienceBehavior(section: Record<string, unknown>): ReactNode {
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">High Intent Signals</p>
-        {renderQuoteList(highIntentSignals)}
+        <QuoteList rows={highIntentSignals} emptyMessage="No high intent signals available." />
       </div>
     </div>
   );
@@ -487,24 +568,18 @@ function renderStrategicInsight(section: Record<string, unknown>): ReactNode {
   const risks = asStringList(section.top_risks);
 
   return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <div className="rounded-md border border-border bg-background/60 p-3 lg:col-span-1">
+    <div className="space-y-4" data-testid="strategic-insight-layout">
+      <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Summary</p>
-        <p className="text-sm text-muted-foreground">{asString(section.summary, 'No strategic summary available.')}</p>
+        <CollapsibleText text={asString(section.summary, 'No strategic summary available.')} />
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Top Opportunities</p>
-        <ul className="space-y-1 text-sm">
-          {opportunities.length === 0 && <li className="text-muted-foreground">No opportunities available.</li>}
-          {opportunities.map((item) => <li key={item}>• {item}</li>)}
-        </ul>
+        <CollapsibleStringList items={opportunities} emptyMessage="No opportunities available." />
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Top Risks</p>
-        <ul className="space-y-1 text-sm">
-          {risks.length === 0 && <li className="text-muted-foreground">No risks available.</li>}
-          {risks.map((item) => <li key={item}>• {item}</li>)}
-        </ul>
+        <CollapsibleStringList items={risks} emptyMessage="No risks available." />
       </div>
     </div>
   );
@@ -526,10 +601,7 @@ function renderPredictions(section: Record<string, unknown>): ReactNode {
       </div>
       <div className="rounded-md border border-border bg-background/60 p-3">
         <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Projected Drivers</p>
-        <ul className="space-y-1 text-sm">
-          {projectedDrivers.length === 0 && <li className="text-muted-foreground">No projected drivers available.</li>}
-          {projectedDrivers.map((driver) => <li key={driver}>• {driver}</li>)}
-        </ul>
+        <CollapsibleStringList items={projectedDrivers} emptyMessage="No projected drivers available." />
       </div>
     </div>
   );
@@ -539,11 +611,8 @@ function renderConclusion(section: Record<string, unknown>): ReactNode {
   const recommendations = asStringList(section.recommendations);
   return (
     <div className="space-y-3">
-      <p className="text-sm text-muted-foreground">{asString(section.narrative, 'No conclusion available.')}</p>
-      <ul className="space-y-1 text-sm">
-        {recommendations.length === 0 && <li className="text-muted-foreground">No recommendations available.</li>}
-        {recommendations.map((recommendation) => <li key={recommendation}>• {recommendation}</li>)}
-      </ul>
+      <CollapsibleText text={asString(section.narrative, 'No conclusion available.')} />
+      <CollapsibleStringList items={recommendations} emptyMessage="No recommendations available." />
     </div>
   );
 }
@@ -652,8 +721,8 @@ export function AnalysisResultsDocument({ query, jobId }: AnalysisResultsDocumen
     <div className="space-y-4 p-4" data-testid="analysis-results-document">
       <div className="rounded-lg border border-border bg-background/60 p-3">
         <p className="text-[11px] uppercase tracking-[0.14em] text-muted-foreground">Analysis Results Document</p>
-        <p className="mt-1 text-base font-semibold">{campaignName}</p>
-        <p className="mt-1 text-xs text-muted-foreground">{query || 'Query not provided'}</p>
+        <p className="mt-1 break-words text-base font-semibold">{campaignName}</p>
+        <p className="mt-1 break-words text-xs text-muted-foreground">{query || 'Query not provided'}</p>
         {isLoading && <p className="mt-2 text-xs text-muted-foreground">Loading latest analysis data...</p>}
       </div>
 
