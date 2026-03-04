@@ -39,6 +39,10 @@ export function Sidebar({
 }: SidebarProps) {
   const [pendingDeleteChat, setPendingDeleteChat] = useState<RecentChat | null>(null);
   const isDeletePending = !!pendingDeleteChat && isDeletingChatId === pendingDeleteChat.id;
+  const handleOpenPricing = () => {
+    window.history.pushState({}, '', '/pricing');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
 
   return (
     <div className="flex h-screen w-64 flex-col border-r border-border bg-[#0F1113]">
@@ -57,6 +61,13 @@ export function Sidebar({
         >
           <Plus className="h-4 w-4" />
           New Investigation
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenPricing}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-card/80"
+        >
+          Pricing
         </button>
         {isAdminUser && onOpenDemo && (
           <button
