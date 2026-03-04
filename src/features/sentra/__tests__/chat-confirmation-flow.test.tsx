@@ -104,15 +104,48 @@ describe('chat confirmation flow', () => {
 
       if (url.includes(`/v1/jobs/${jobId}`)) {
         statusPollCount += 1;
-        const status = statusPollCount >= 2 ? 'completed' : 'running';
+        const isCompleted = statusPollCount >= 2;
         return new Response(
           JSON.stringify({
             id: jobId,
             query: 'Sentiment around pension reform in Romania last 7 days',
-            status,
+            status: isCompleted ? 'completed' : 'running',
             inserted_at: '2026-02-23T20:00:02Z',
             updated_at: '2026-02-23T20:00:03Z',
             error_message: null,
+            stage_code: isCompleted ? 'completed' : 'sentiment',
+            stage_label: isCompleted ? 'Completed' : 'Sentiment',
+            progress: isCompleted
+              ? {
+                  overall: {
+                    current_stage_code: 'completed',
+                    stages_completed: 5,
+                    stages_total: 5,
+                  },
+                  stages: {
+                    sentiment: {
+                      posts_total: 2,
+                      posts_done: 2,
+                      comments_total: 4,
+                      comments_done: 4,
+                    },
+                  },
+                }
+              : {
+                  overall: {
+                    current_stage_code: 'sentiment',
+                    stages_completed: 2,
+                    stages_total: 5,
+                  },
+                  stages: {
+                    sentiment: {
+                      posts_total: 2,
+                      posts_done: 1,
+                      comments_total: 4,
+                      comments_done: 2,
+                    },
+                  },
+                },
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
@@ -169,6 +202,11 @@ describe('chat confirmation flow', () => {
     await waitFor(() => {
       const called = fetchMock.mock.calls.map((call) => String(call[0]));
       expect(called.some((url) => url.includes('/confirm-job'))).toBe(true);
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Overall: 2\/5 stages/i)).toBeInTheDocument();
+      expect(screen.getByText(/Sentiment: posts 1\/2, comments 2\/4/i)).toBeInTheDocument();
     });
   });
 

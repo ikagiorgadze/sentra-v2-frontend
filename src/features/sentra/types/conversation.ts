@@ -78,12 +78,20 @@ export interface ConversationSnapshotRecord {
   retry_proposal?: ConversationProposalRecord | null;
 }
 
+export type JobProgressValue = string | number | boolean | null;
+
+export interface JobProgressSnapshot {
+  overall?: Record<string, JobProgressValue | undefined> | null;
+  stages?: Record<string, Record<string, JobProgressValue | undefined>> | null;
+}
+
 export interface ConversationLatestJobRecord {
   id: string;
   status: string;
   error_message?: string | null;
   stage_code?: string | null;
   stage_label?: string | null;
+  progress?: JobProgressSnapshot | null;
   updated_at: string;
 }
 

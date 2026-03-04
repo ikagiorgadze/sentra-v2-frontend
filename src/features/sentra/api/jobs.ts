@@ -1,4 +1,5 @@
 import { apiFetch } from '@/lib/api/http';
+import type { JobProgressSnapshot } from '@/features/sentra/types/conversation';
 
 export interface JobRecord {
   id: string;
@@ -9,6 +10,7 @@ export interface JobRecord {
   error_message?: string | null;
   stage_code?: string | null;
   stage_label?: string | null;
+  progress?: JobProgressSnapshot | null;
 }
 
 async function parseError(response: Response): Promise<string> {

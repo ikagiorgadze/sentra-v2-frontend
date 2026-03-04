@@ -30,6 +30,7 @@ import type {
   ConversationMessageRecord,
   ConversationProposalRecord,
   ConversationState,
+  JobProgressSnapshot,
 } from '@/features/sentra/types/conversation';
 import { AppState, AppView, RecentChat } from '@/features/sentra/types';
 import { clearAccessToken, getAccessToken } from '@/lib/auth/tokenStorage';
@@ -47,6 +48,7 @@ interface JobProgressState {
   warningMessage: string | null;
   errorMessage: string | null;
   canRetry: boolean;
+  progress?: JobProgressSnapshot | null;
 }
 
 function getRelativeTime(timestamp: number) {
@@ -775,6 +777,7 @@ export function AppShell({
             warningMessage: null,
             errorMessage: null,
             canRetry: false,
+            progress: latest.progress ?? null,
           });
           appendBriefBubbleForJob(latest.id, resolvedQuery);
           return;
@@ -789,6 +792,7 @@ export function AppShell({
             warningMessage: null,
             errorMessage: latest.error_message?.trim() || 'The job failed.',
             canRetry: true,
+            progress: latest.progress ?? null,
           });
           return;
         }
@@ -801,6 +805,7 @@ export function AppShell({
           warningMessage: null,
           errorMessage: null,
           canRetry: false,
+          progress: latest.progress ?? null,
         });
         return;
       }
@@ -876,6 +881,7 @@ export function AppShell({
           warningMessage: null,
           errorMessage: null,
           canRetry: false,
+          progress: job.progress ?? null,
         });
 
         if (nextStatus === 'completed') {
@@ -898,6 +904,7 @@ export function AppShell({
             warningMessage: null,
             errorMessage: detail,
             canRetry: true,
+            progress: job.progress ?? null,
           });
           return;
         }

@@ -96,15 +96,48 @@ describe('chat job monitoring', () => {
 
       if (url.includes(`/v1/jobs/${jobId}`)) {
         statusPollCount += 1;
-        const status = statusPollCount >= 3 ? 'completed' : 'running';
+        const isCompleted = statusPollCount >= 3;
         return new Response(
           JSON.stringify({
             id: jobId,
             query: 'Sentiment around pension reform in Romania last 7 days',
-            status,
+            status: isCompleted ? 'completed' : 'running',
             inserted_at: '2026-02-23T20:00:02Z',
             updated_at: '2026-02-23T20:00:03Z',
             error_message: null,
+            stage_code: isCompleted ? 'completed' : 'sentiment',
+            stage_label: isCompleted ? 'Completed' : 'Sentiment',
+            progress: isCompleted
+              ? {
+                  overall: {
+                    current_stage_code: 'completed',
+                    stages_completed: 5,
+                    stages_total: 5,
+                  },
+                  stages: {
+                    sentiment: {
+                      posts_total: 4,
+                      posts_done: 4,
+                      comments_total: 8,
+                      comments_done: 8,
+                    },
+                  },
+                }
+              : {
+                  overall: {
+                    current_stage_code: 'sentiment',
+                    stages_completed: 2,
+                    stages_total: 5,
+                  },
+                  stages: {
+                    sentiment: {
+                      posts_total: 4,
+                      posts_done: 2,
+                      comments_total: 8,
+                      comments_done: 4,
+                    },
+                  },
+                },
           }),
           { status: 200, headers: { 'Content-Type': 'application/json' } },
         );
@@ -150,12 +183,12 @@ describe('chat job monitoring', () => {
     await user.keyboard('{Enter}');
     await user.click(await screen.findByRole('button', { name: /confirm/i }));
 
-    expect(await screen.findByText(/status: running/i)).toBeInTheDocument();
-    expect(screen.queryByText(/Posts Collected/i)).not.toBeInTheDocument();
+    expect(await screen.findByText(/status: sentiment/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Overall: 2\/5 stages/i)).toBeInTheDocument();
 
     await waitFor(
       () => {
-        expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+        expect(screen.getByTestId('analysis-results-document')).toBeInTheDocument();
       },
       { timeout: 4000 },
     );

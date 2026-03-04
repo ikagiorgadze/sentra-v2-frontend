@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import type { ConversationProposalRecord } from '@/features/sentra/types/conversation';
+import type { ConversationProposalRecord, JobProgressSnapshot } from '@/features/sentra/types/conversation';
 import { IntelligenceBriefBubble } from '@/features/sentra/components/chat/IntelligenceBriefBubble';
 import { MessageComposer } from '@/features/sentra/components/chat/MessageComposer';
 import { JobProgressCard } from '@/features/sentra/components/chat/JobProgressCard';
@@ -34,6 +34,7 @@ interface ConversationPanelProps {
     warningMessage?: string | null;
     errorMessage?: string | null;
     canRetry?: boolean;
+    progress?: JobProgressSnapshot | null;
   } | null;
   onSend: (message: string) => Promise<void> | void;
   onStartNewProposal: () => Promise<void> | void;
@@ -127,6 +128,7 @@ export function ConversationPanel({
               warningMessage={jobProgress.warningMessage}
               errorMessage={jobProgress.errorMessage}
               canRetry={jobProgress.canRetry}
+              progress={jobProgress.progress}
               onTryAgain={onRetryJob}
               isRetrying={isRetryingJob}
             />
