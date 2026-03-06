@@ -394,6 +394,14 @@ export function AppShell({
     syncPath('/admin/demo');
     setRouteTick((prev) => prev + 1);
   };
+  const handleOpenRequestForm = () => {
+    syncPath('/request-form');
+    setRouteTick((prev) => prev + 1);
+  };
+  const handleOpenRequestHistory = () => {
+    syncPath('/request-history');
+    setRouteTick((prev) => prev + 1);
+  };
 
   const resetToNewInvestigation = useCallback(() => {
     syncPath('/chat');
@@ -1006,6 +1014,8 @@ export function AppShell({
         recentChats={recentChats}
         onNewInvestigation={handleNewInvestigation}
         onOpenDemo={handleOpenDemo}
+        onOpenRequestForm={handleOpenRequestForm}
+        onOpenRequestHistory={handleOpenRequestHistory}
         isAdminUser={isAdminUser}
         currentChatId={currentChatId}
         onSelectChat={(id) => void handleSelectChat(id)}

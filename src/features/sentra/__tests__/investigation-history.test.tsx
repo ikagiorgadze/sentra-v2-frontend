@@ -154,7 +154,7 @@ describe('investigation history', () => {
     await user.click(await screen.findByRole('button', { name: /pension reform romania.*monitoring/i }));
 
     await waitFor(() => {
-      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+      expect(screen.getByText(/executive key metrics/i)).toBeInTheDocument();
     }, { timeout: 4000 });
 
     expect(screen.getByRole('button', { name: /pension reform romania.*monitoring/i })).toBeInTheDocument();
@@ -162,7 +162,7 @@ describe('investigation history', () => {
     await user.click(screen.getByRole('button', { name: /new investigation/i }));
     await user.click(screen.getByRole('button', { name: /pension reform romania.*monitoring/i }));
 
-    expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+    expect(screen.getByText(/executive key metrics/i)).toBeInTheDocument();
   });
 
   it('shows completed/failed state badges consistently after selecting historical chat', async () => {
@@ -308,7 +308,7 @@ describe('investigation history', () => {
 
     await user.click(screen.getByRole('button', { name: /completed investigation.*completed/i }));
     await waitFor(() => {
-      expect(screen.getByText(/executive summary/i)).toBeInTheDocument();
+      expect(screen.getByText(/executive key metrics/i)).toBeInTheDocument();
     });
 
     await user.click(screen.getByRole('button', { name: /failed investigation.*failed/i }));

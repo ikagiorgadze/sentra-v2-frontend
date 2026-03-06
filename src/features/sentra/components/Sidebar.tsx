@@ -16,6 +16,8 @@ interface SidebarProps {
   recentChats: RecentChat[];
   onNewInvestigation: () => void;
   onOpenDemo?: () => void;
+  onOpenRequestForm?: () => void;
+  onOpenRequestHistory?: () => void;
   isAdminUser?: boolean;
   currentChatId?: string;
   onSelectChat: (id: string) => void;
@@ -29,6 +31,8 @@ export function Sidebar({
   recentChats,
   onNewInvestigation,
   onOpenDemo,
+  onOpenRequestForm,
+  onOpenRequestHistory,
   isAdminUser = false,
   currentChatId,
   onSelectChat,
@@ -41,6 +45,22 @@ export function Sidebar({
   const isDeletePending = !!pendingDeleteChat && isDeletingChatId === pendingDeleteChat.id;
   const handleOpenPricing = () => {
     window.history.pushState({}, '', '/pricing');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+  const handleOpenRequestForm = () => {
+    if (onOpenRequestForm) {
+      onOpenRequestForm();
+      return;
+    }
+    window.history.pushState({}, '', '/request-form');
+    window.dispatchEvent(new PopStateEvent('popstate'));
+  };
+  const handleOpenRequestHistory = () => {
+    if (onOpenRequestHistory) {
+      onOpenRequestHistory();
+      return;
+    }
+    window.history.pushState({}, '', '/request-history');
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
@@ -68,6 +88,20 @@ export function Sidebar({
           className="mt-2 flex w-full items-center justify-center gap-2 rounded border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-card/80"
         >
           Pricing
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenRequestForm}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-card/80"
+        >
+          New Request Form
+        </button>
+        <button
+          type="button"
+          onClick={handleOpenRequestHistory}
+          className="mt-2 flex w-full items-center justify-center gap-2 rounded border border-border bg-card px-4 py-2 text-sm transition-colors hover:bg-card/80"
+        >
+          Request History
         </button>
         {isAdminUser && onOpenDemo && (
           <button
