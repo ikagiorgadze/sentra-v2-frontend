@@ -1,6 +1,7 @@
 import { apiFetch } from '@/lib/api/http';
 import type {
   CreateFormRequestInput,
+  RequestAnalysisDocumentRecord,
   CreateFormRequestRecord,
   FormRequestRecord,
 } from '@/features/sentra/types/formRequest';
@@ -54,4 +55,14 @@ export async function getFormRequest(requestId: string): Promise<FormRequestReco
   }
 
   return (await response.json()) as FormRequestRecord;
+}
+
+export async function getFormRequestAnalysisDocument(requestId: string): Promise<RequestAnalysisDocumentRecord> {
+  const response = await apiFetch(`/v1/form-requests/${requestId}/analysis-document`);
+
+  if (!response.ok) {
+    throw new Error(await parseError(response));
+  }
+
+  return (await response.json()) as RequestAnalysisDocumentRecord;
 }

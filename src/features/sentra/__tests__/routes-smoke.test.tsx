@@ -25,4 +25,10 @@ describe('route entry points', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /sentra intelligence request form/i })).toBeInTheDocument();
   });
+
+  it('renders request analysis page route', () => {
+    window.history.pushState({}, '', '/request-history/request-1/analysis');
+    render(<App />);
+    expect(screen.getByRole('heading', { name: /request analysis document/i })).toBeInTheDocument();
+  });
 });

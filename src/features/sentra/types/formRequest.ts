@@ -24,3 +24,20 @@ export interface CreateFormRequestRecord {
   request: FormRequestRecord;
   job: JobRecord;
 }
+
+export interface RequestAnalysisSectionRecord {
+  key: string;
+  title: string;
+  payload: Record<string, unknown>;
+}
+
+export interface RequestAnalysisDocumentRecord {
+  meta: {
+    request_id: string;
+    job_id: string;
+    report_contract: string;
+    generated_at: string;
+    primary_entity?: string | null;
+  };
+  sections: RequestAnalysisSectionRecord[];
+}
