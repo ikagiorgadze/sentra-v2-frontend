@@ -16,6 +16,7 @@ const SECTION_DEFS = [
   { key: 'negative_reception_analysis', title: 'Negative Reception Analysis' },
   { key: 'topic_cluster_analysis', title: 'Topic Cluster Analysis' },
   { key: 'engagement_decay_curve', title: 'Engagement Decay Curve' },
+  { key: 'influencer_impact_analysis', title: 'Influencer Impact Analysis' },
   { key: 'audience_behavior_insights', title: 'Audience Behavior Insights' },
   { key: 'ai_strategic_insight_summary', title: 'AI Strategic Insight Summary' },
   { key: 'campaign_predictions', title: 'Campaign Predictions' },
@@ -146,6 +147,10 @@ function createDefaultSections(query: string): Record<SectionKey, Record<string,
     engagement_decay_curve: {
       daily_metrics: [],
       sentiment_timeseries: [],
+    },
+    influencer_impact_analysis: {
+      influencers: [],
+      engagement_concentration_ratio: 0,
     },
     audience_behavior_insights: {
       platform_sentiment: [],
@@ -519,6 +524,38 @@ function renderEngagement(section: Record<string, unknown>): ReactNode {
   );
 }
 
+function renderInfluencerImpact(section: Record<string, unknown>): ReactNode {
+  const influencers = asObjectList(section.influencers);
+  const rows = influencers.slice(0, 10);
+  const concentration = asNumber(section.engagement_concentration_ratio);
+
+  return (
+    <div className="space-y-3">
+      <div className="rounded-md border border-border p-3">
+        <p className="text-[11px] uppercase tracking-[0.1em] text-muted-foreground">Engagement Concentration Ratio</p>
+        <p className="mt-1 text-base font-semibold">{concentration}%</p>
+      </div>
+      <div className="rounded-md border border-border bg-background/60 p-3">
+        <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Top Influencers</p>
+        <ul className="space-y-2 text-sm">
+          {rows.length === 0 && <li className="text-muted-foreground">No influencer data available.</li>}
+          {rows.map((row, index) => (
+            <li
+              key={`${asString(row.actor_name, asString(row.name, 'unknown'))}-${index}`}
+              className="flex items-center justify-between gap-3"
+            >
+              <span className="break-words">{asString(row.actor_name, asString(row.name, 'unknown'))}</span>
+              <span className="text-muted-foreground">
+                {asNumber(row.mentions)} mentions · {asNumber(row.engagement)} engagement
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    </div>
+  );
+}
+
 function renderAudienceBehavior(section: Record<string, unknown>): ReactNode {
   const platformSentiment = asObjectList(section.platform_sentiment);
   const highIntentSignals = asObjectList(section.high_intent_signals);
@@ -614,6 +651,8 @@ function renderSection(key: SectionKey, section: Record<string, unknown>, campai
       return renderTopicCluster(normalized);
     case 'engagement_decay_curve':
       return renderEngagement(normalized);
+    case 'influencer_impact_analysis':
+      return renderInfluencerImpact(normalized);
     case 'audience_behavior_insights':
       return renderAudienceBehavior(normalized);
     case 'ai_strategic_insight_summary':

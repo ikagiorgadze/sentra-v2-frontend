@@ -42,6 +42,7 @@ describe('analysis results document backend', () => {
             negative_reception_analysis: {},
             topic_cluster_analysis: {},
             engagement_decay_curve: {},
+            influencer_impact_analysis: {},
             audience_behavior_insights: {},
             ai_strategic_insight_summary: {},
             campaign_predictions: {},
@@ -61,7 +62,7 @@ describe('analysis results document backend', () => {
 
     expect(await screen.findByText(/executive key metrics/i)).toBeInTheDocument();
     expect(screen.getByText(/campaign predictions/i)).toBeInTheDocument();
-    expect(screen.queryByText(/influencer impact analysis/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/influencer impact analysis/i)).toBeInTheDocument();
   });
 
   it('shows inline retry control when analysis-document request fails', async () => {
