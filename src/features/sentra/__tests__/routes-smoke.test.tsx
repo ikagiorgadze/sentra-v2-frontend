@@ -19,4 +19,10 @@ describe('route entry points', () => {
     render(<App />);
     expect(screen.getByRole('heading', { name: /welcome back|create your account/i })).toBeInTheDocument();
   });
+
+  it('renders form request page on request-form route', () => {
+    window.history.pushState({}, '', '/request-form');
+    render(<App />);
+    expect(screen.getByRole('heading', { name: /sentra intelligence request form/i })).toBeInTheDocument();
+  });
 });
