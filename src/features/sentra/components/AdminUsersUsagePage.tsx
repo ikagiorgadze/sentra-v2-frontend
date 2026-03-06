@@ -92,17 +92,10 @@ export function AdminUsersUsagePage() {
   }, [range, fromDate, toDate]);
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8 text-foreground">
+    <div className="px-6 py-8">
       <div className="mx-auto max-w-7xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-wide">Admin Usage - All Users</h1>
-          <button
-            type="button"
-            onClick={() => navigate('/chat')}
-            className="rounded border border-border bg-card px-3 py-2 text-sm hover:bg-card/80"
-          >
-            Back to Chat
-          </button>
         </div>
 
         <div className="flex flex-wrap items-end gap-3 rounded border border-border bg-card p-4">
@@ -157,6 +150,9 @@ export function AdminUsersUsagePage() {
                 <th className="px-3 py-2">Apify Unres.</th>
                 <th className="px-3 py-2">LLM</th>
                 <th className="px-3 py-2">LLM Unres.</th>
+                <th className="px-3 py-2">Request</th>
+                <th className="px-3 py-2">Req. Unres.</th>
+                <th className="px-3 py-2">Req. Events</th>
                 <th className="px-3 py-2">Events</th>
                 <th className="px-3 py-2">Last Activity</th>
                 <th className="px-3 py-2">Detail</th>
@@ -173,6 +169,9 @@ export function AdminUsersUsagePage() {
                     <td className="px-3 py-2">{row.apify_unresolved_events_count}</td>
                     <td className="px-3 py-2">{formatUsd(row.llm_resolved_usd)}</td>
                     <td className="px-3 py-2">{row.llm_unresolved_events_count}</td>
+                    <td className="px-3 py-2">{formatUsd(row.request_pipeline_resolved_usd)}</td>
+                    <td className="px-3 py-2">{row.request_pipeline_unresolved_events_count}</td>
+                    <td className="px-3 py-2">{row.request_pipeline_events_count}</td>
                     <td className="px-3 py-2">{row.total_events_count}</td>
                     <td className="px-3 py-2">{formatDateTime(row.last_activity_at)}</td>
                     <td className="px-3 py-2">

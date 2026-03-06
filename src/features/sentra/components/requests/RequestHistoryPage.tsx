@@ -48,7 +48,7 @@ export function RequestHistoryPage() {
   }, []);
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
+    <main className="px-4 py-8">
       <div className="mx-auto w-full max-w-4xl space-y-5">
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold">Form Requests</h1>

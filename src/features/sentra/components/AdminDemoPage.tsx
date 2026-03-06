@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 
 import { ConversationPanel } from '@/features/sentra/components/chat/ConversationPanel';
 import { RightPanel } from '@/features/sentra/components/RightPanel';
-import { Sidebar } from '@/features/sentra/components/Sidebar';
 import { useDemoConversation } from '@/features/sentra/demo/useDemoConversation';
 import type { DemoScenario } from '@/features/sentra/demo/types';
 
@@ -31,13 +30,7 @@ export function AdminDemoPage({ scenarios }: AdminDemoPageProps) {
   );
 
   return (
-    <div className="dark flex min-h-screen bg-background text-foreground">
-      <Sidebar
-        recentChats={[]}
-        onNewInvestigation={controller.restartScenario}
-        onSelectChat={() => undefined}
-      />
-
+    <div className="flex flex-1">
       <div className="flex-1 overflow-y-auto">
         <div className="border-b border-border px-6 py-4">
           <div className="mx-auto flex w-full max-w-3xl flex-wrap items-end gap-3">

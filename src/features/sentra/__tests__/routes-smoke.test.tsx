@@ -1,8 +1,24 @@
 import { cleanup, render, screen } from '@testing-library/react';
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { setAccessToken, clearAccessToken } from '@/lib/auth/tokenStorage';
 import App from '@/App';
 
+function makeToken(expOffsetSeconds: number): string {
+  const payload = {
+    sub: 'user-1',
+    email: 'user@example.com',
+    role: 'user',
+    exp: Math.floor(Date.now() / 1000) + expOffsetSeconds,
+  };
+  const encoded = btoa(JSON.stringify(payload))
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '');
+  return `header.${encoded}.sig`;
+}
+
 afterEach(() => {
+  clearAccessToken();
   cleanup();
 });
 
@@ -21,12 +37,14 @@ describe('route entry points', () => {
   });
 
   it('renders form request page on request-form route', () => {
+    setAccessToken(makeToken(3600));
     window.history.pushState({}, '', '/request-form');
     render(<App />);
     expect(screen.getByRole('heading', { name: /sentra intelligence request form/i })).toBeInTheDocument();
   });
 
   it('renders request analysis page route', () => {
+    setAccessToken(makeToken(3600));
     window.history.pushState({}, '', '/request-history/request-1/analysis');
     render(<App />);
     expect(screen.getByRole('heading', { name: /request analysis document/i })).toBeInTheDocument();

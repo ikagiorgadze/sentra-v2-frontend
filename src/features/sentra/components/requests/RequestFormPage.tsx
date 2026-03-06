@@ -5,8 +5,8 @@ import { createFormRequest } from '@/features/sentra/api/formRequests';
 import { buildRequestQuery, type RequestQueryInput } from '@/features/sentra/lib/requestQueryBuilder';
 
 interface FormErrors {
-  organizationName?: string;
   primaryEntity?: string;
+  customDateRange?: string;
   submit?: string;
 }
 
@@ -19,56 +19,50 @@ function parseKeywords(raw: string): string[] {
 
 export function RequestFormPage() {
   const navigate = useNavigate();
-  const [organizationName, setOrganizationName] = useState('');
   const [primaryEntity, setPrimaryEntity] = useState('');
   const [region, setRegion] = useState<'Global' | 'Eastern Europe' | 'Specific country'>('Global');
   const [country, setCountry] = useState('');
   const [timePreset, setTimePreset] = useState<'Last 24 hours' | 'Last 7 days' | 'Last 30 days' | 'Custom range'>(
     'Last 7 days',
   );
-  const [keyQuestion, setKeyQuestion] = useState('');
+  const [customStartDate, setCustomStartDate] = useState('');
+  const [customEndDate, setCustomEndDate] = useState('');
   const [keywordsRaw, setKeywordsRaw] = useState('');
-  const [objectives, setObjectives] = useState<string[]>(['Brand sentiment monitoring']);
   const [errors, setErrors] = useState<FormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const queryInput = useMemo<RequestQueryInput>(
     () => ({
       primary_entity: primaryEntity,
-      objectives,
       geography: {
         region,
         country: country.trim() || undefined,
       },
       timeframe: {
         preset: timePreset,
+        start_date: timePreset === 'Custom range' ? customStartDate || undefined : undefined,
+        end_date: timePreset === 'Custom range' ? customEndDate || undefined : undefined,
       },
       keywords: parseKeywords(keywordsRaw),
-      key_question: keyQuestion,
     }),
-    [country, keyQuestion, keywordsRaw, objectives, primaryEntity, region, timePreset],
+    [country, customEndDate, customStartDate, keywordsRaw, primaryEntity, region, timePreset],
   );
 
   const queryPreview = useMemo(() => buildRequestQuery(queryInput), [queryInput]);
-
-  const toggleObjective = (value: string, checked: boolean) => {
-    setObjectives((current) => {
-      if (checked) {
-        return current.includes(value) ? current : [...current, value];
-      }
-      return current.filter((item) => item !== value);
-    });
-  };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     const nextErrors: FormErrors = {};
-    if (!organizationName.trim()) {
-      nextErrors.organizationName = 'Organization/Client name is required';
-    }
     if (!primaryEntity.trim()) {
       nextErrors.primaryEntity = 'Primary brand/organization is required';
+    }
+    if (timePreset === 'Custom range') {
+      if (!customStartDate || !customEndDate) {
+        nextErrors.customDateRange = 'Custom range requires both start and end date';
+      } else if (customStartDate > customEndDate) {
+        nextErrors.customDateRange = 'Custom range start date must be before end date';
+      }
     }
     if (Object.keys(nextErrors).length > 0) {
       setErrors(nextErrors);
@@ -82,23 +76,24 @@ export function RequestFormPage() {
       const response = await createFormRequest({
         query: queryPreview,
         form_payload: {
-          organization_name: organizationName.trim(),
           primary_entity: primaryEntity.trim(),
-          objectives,
           geography: {
             region,
-            country: country.trim() || null,
+            country: region === 'Specific country' ? country.trim() || null : null,
           },
           timeframe: {
             preset: timePreset,
+            start_date: timePreset === 'Custom range' ? customStartDate : null,
+            end_date: timePreset === 'Custom range' ? customEndDate : null,
           },
-          key_question: keyQuestion.trim() || null,
           keywords: parseKeywords(keywordsRaw),
         },
         normalization_json: {
-          region,
-          country: country.trim() || null,
+          region: null,
+          country: null,
           timeframe: timePreset,
+          start_date: timePreset === 'Custom range' ? customStartDate : null,
+          end_date: timePreset === 'Custom range' ? customEndDate : null,
         },
       });
       navigate(`/request-history/${response.request.id}`);
@@ -111,7 +106,7 @@ export function RequestFormPage() {
   };
 
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
+    <main className="px-4 py-8">
       <div className="mx-auto w-full max-w-3xl space-y-6">
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold">Sentra Intelligence Request Form</h1>
@@ -119,19 +114,6 @@ export function RequestFormPage() {
         </header>
 
         <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-border bg-card p-5">
-          <div className="space-y-2">
-            <label htmlFor="organizationName" className="text-sm">
-              Organization / Client Name
-            </label>
-            <input
-              id="organizationName"
-              value={organizationName}
-              onChange={(event) => setOrganizationName(event.target.value)}
-              className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-            />
-            {errors.organizationName && <p className="text-xs text-red-300">{errors.organizationName}</p>}
-          </div>
-
           <div className="space-y-2">
             <label htmlFor="primaryEntity" className="text-sm">
               Primary Brand / Organization
@@ -144,26 +126,6 @@ export function RequestFormPage() {
             />
             {errors.primaryEntity && <p className="text-xs text-red-300">{errors.primaryEntity}</p>}
           </div>
-
-          <fieldset className="space-y-2">
-            <legend className="text-sm">Monitoring Objective</legend>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={objectives.includes('Brand sentiment monitoring')}
-                onChange={(event) => toggleObjective('Brand sentiment monitoring', event.target.checked)}
-              />
-              <span>Brand sentiment monitoring</span>
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={objectives.includes('Crisis monitoring / early warning')}
-                onChange={(event) => toggleObjective('Crisis monitoring / early warning', event.target.checked)}
-              />
-              <span>Crisis monitoring / early warning</span>
-            </label>
-          </fieldset>
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-2">
@@ -189,6 +151,7 @@ export function RequestFormPage() {
                 id="country"
                 value={country}
                 onChange={(event) => setCountry(event.target.value)}
+                disabled={region !== 'Specific country'}
                 className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
               />
             </div>
@@ -211,17 +174,35 @@ export function RequestFormPage() {
             </select>
           </div>
 
-          <div className="space-y-2">
-            <label htmlFor="keyQuestion" className="text-sm">
-              Key Question
-            </label>
-            <textarea
-              id="keyQuestion"
-              value={keyQuestion}
-              onChange={(event) => setKeyQuestion(event.target.value)}
-              className="min-h-24 w-full rounded border border-border bg-background px-3 py-2 text-sm"
-            />
-          </div>
+          {timePreset === 'Custom range' && (
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="customStartDate" className="text-sm">
+                  Start Date
+                </label>
+                <input
+                  id="customStartDate"
+                  type="date"
+                  value={customStartDate}
+                  onChange={(event) => setCustomStartDate(event.target.value)}
+                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="customEndDate" className="text-sm">
+                  End Date
+                </label>
+                <input
+                  id="customEndDate"
+                  type="date"
+                  value={customEndDate}
+                  onChange={(event) => setCustomEndDate(event.target.value)}
+                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
+                />
+              </div>
+            </div>
+          )}
+          {errors.customDateRange && <p className="text-xs text-red-300">{errors.customDateRange}</p>}
 
           <div className="space-y-2">
             <label htmlFor="keywords" className="text-sm">

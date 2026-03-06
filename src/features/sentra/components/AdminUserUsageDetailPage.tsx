@@ -123,7 +123,7 @@ export function AdminUserUsageDetailPage() {
   }, [range, fromDate, toDate]);
 
   return (
-    <div className="min-h-screen bg-background px-6 py-8 text-foreground">
+    <div className="px-6 py-8">
       <div className="mx-auto max-w-7xl space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-2xl font-semibold tracking-wide">Admin Usage - User Detail</h1>
@@ -178,7 +178,7 @@ export function AdminUserUsageDetailPage() {
         {error && <div className="rounded border border-red-500/30 bg-red-500/10 px-3 py-2 text-sm text-red-200">{error}</div>}
 
         {payload?.summary && (
-          <div className="grid gap-3 rounded border border-border bg-card p-4 md:grid-cols-4">
+          <div className="grid gap-3 rounded border border-border bg-card p-4 md:grid-cols-6">
             <div>
               <p className="text-xs uppercase tracking-wider text-muted-foreground">User</p>
               <p className="text-sm">{payload.summary.email}</p>
@@ -190,6 +190,18 @@ export function AdminUserUsageDetailPage() {
             <div>
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Unresolved Events</p>
               <p className="text-sm">{payload.summary.unresolved_events_count}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Request USD</p>
+              <p className="text-sm">{formatUsd(payload.summary.request_pipeline_resolved_usd)}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Request Unresolved</p>
+              <p className="text-sm">{payload.summary.request_pipeline_unresolved_events_count}</p>
+            </div>
+            <div>
+              <p className="text-xs uppercase tracking-wider text-muted-foreground">Request Events</p>
+              <p className="text-sm">{payload.summary.request_pipeline_events_count}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider text-muted-foreground">Last Activity</p>
@@ -207,6 +219,7 @@ export function AdminUserUsageDetailPage() {
                 <th className="px-3 py-2">Provider</th>
                 <th className="px-3 py-2">Operation</th>
                 <th className="px-3 py-2">Model/Actor</th>
+                <th className="px-3 py-2">Pipeline</th>
                 <th className="px-3 py-2">Status</th>
                 <th className="px-3 py-2">Cost</th>
                 <th className="px-3 py-2">Input Tokens</th>
@@ -222,6 +235,7 @@ export function AdminUserUsageDetailPage() {
                     <td className="px-3 py-2">{event.provider}</td>
                     <td className="px-3 py-2">{event.operation}</td>
                     <td className="px-3 py-2">{event.model_or_actor}</td>
+                    <td className="px-3 py-2">{event.pipeline}</td>
                     <td className="px-3 py-2">{event.status}</td>
                     <td className="px-3 py-2">{formatUsd(event.cost_usd)}</td>
                     <td className="px-3 py-2">{event.input_tokens ?? '-'}</td>

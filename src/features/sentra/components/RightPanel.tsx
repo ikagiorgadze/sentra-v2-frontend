@@ -49,7 +49,9 @@ export function RightPanel({ filters, onChange }: RightPanelProps = {}) {
   };
 
   return (
-    <div className={`flex h-screen border-l border-border bg-card transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}>
+    <div
+      className={`flex min-h-screen shrink-0 self-stretch border-l border-border bg-card transition-all duration-300 ${isCollapsed ? 'w-12' : 'w-80'}`}
+    >
       <button
         type="button"
         aria-label="Toggle filters panel"

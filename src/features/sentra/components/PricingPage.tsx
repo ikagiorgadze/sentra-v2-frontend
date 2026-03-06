@@ -1,11 +1,8 @@
-export function PricingPage() {
-  const handleCheckoutClick = () => {
-    window.history.pushState({}, '', '/checkout');
-    window.dispatchEvent(new PopStateEvent('popstate'));
-  };
+import { Link } from 'react-router-dom';
 
+export function PricingPage() {
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
+    <div>
       <main className="mx-auto max-w-4xl px-6 py-16">
         <div className="mb-8">
           <p className="text-xs uppercase tracking-wider text-muted-foreground">Pricing</p>
@@ -31,13 +28,12 @@ export function PricingPage() {
             Checkout is placeholder-only in this build. No real charges are processed.
           </p>
 
-          <button
-            type="button"
-            onClick={handleCheckoutClick}
-            className="mt-6 rounded bg-[#3FD6D0] px-5 py-2.5 text-sm text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90"
+          <Link
+            to="/checkout"
+            className="mt-6 inline-block rounded bg-[#3FD6D0] px-5 py-2.5 text-sm text-[#0F1113] transition-colors hover:bg-[#3FD6D0]/90"
           >
             Continue to Checkout
-          </button>
+          </Link>
         </section>
       </main>
     </div>

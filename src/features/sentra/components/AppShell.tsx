@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { Navigate } from 'react-router-dom';
 
 import {
   confirmConversationJob,
@@ -195,6 +196,12 @@ export function AppShell({
   const accessToken = getAccessToken();
   const isAdminUser =
     !!accessToken && isTokenUnexpired(accessToken) && getTokenRole(accessToken) === 'admin';
+  const [redirecting, setRedirecting] = useState(() => {
+    if (initialView === 'app') return false;
+    if (initialView === 'auth' && isAuthenticated) return true;
+    if (initialView === 'landing' && window.location.pathname === '/' && isAuthenticated) return true;
+    return false;
+  });
   const [currentView, setCurrentView] = useState<AppView>(() => {
     if (initialView === 'app') {
       return isAuthenticated ? 'app' : 'auth';
@@ -263,7 +270,7 @@ export function AppShell({
     }
 
     if (adminUsageMode && getTokenRole(token) !== 'admin') {
-      syncPath('/chat');
+      syncPath('/request-history');
       setCurrentView('app');
       return;
     }
@@ -278,7 +285,11 @@ export function AppShell({
 
   useEffect(() => {
     if (currentView === 'landing' && isAuthenticated && window.location.pathname === '/') {
-      syncPath('/chat');
+      if (initialView !== 'app') {
+        syncPath('/request-history');
+        setRedirecting(true);
+        return;
+      }
       setCurrentView('app');
       return;
     }
@@ -286,9 +297,14 @@ export function AppShell({
       setCurrentView('auth');
     }
     if (currentView === 'auth' && isAuthenticated) {
+      if (initialView !== 'app') {
+        syncPath('/request-history');
+        setRedirecting(true);
+        return;
+      }
       setCurrentView('app');
     }
-  }, [currentView, isAuthenticated]);
+  }, [currentView, isAuthenticated, initialView]);
 
   useEffect(() => {
     const pathname = window.location.pathname;
@@ -296,14 +312,11 @@ export function AppShell({
       syncPath('/login');
       return;
     }
-    if (currentView === 'app' && pathname === '/') {
-      syncPath('/chat');
-      return;
+    if (currentView === 'app' && initialView !== 'app' && (pathname === '/' || isAuthPath(pathname))) {
+      syncPath('/request-history');
+      setRedirecting(true);
     }
-    if (currentView === 'app' && isAuthPath(pathname)) {
-      syncPath('/chat');
-    }
-  }, [currentView]);
+  }, [currentView, initialView]);
 
   const refreshRecentChats = useCallback(async () => {
     try {
@@ -340,28 +353,13 @@ export function AppShell({
 
   const handleAuthenticate = () => {
     setIsAuthDialogOpen(false);
-    syncPath('/chat');
-    setCurrentView('app');
-    const queued = pendingLandingSend?.trim();
-    setPendingLandingSend(null);
-    if (queued) {
-      setLandingDraftMessage('');
-      void handleSendMessage(queued);
-    }
+    syncPath('/request-history');
+    setRedirecting(true);
   };
 
   const handleViewSample = () => {
-    syncPath('/sample-report');
-    setCurrentView('app');
-    const sampleQuery = 'Sentiment about pension reform in Romania last 7 days';
-    setQuery(sampleQuery);
-    setState('results');
-    setCurrentJobId(undefined);
-    setConversationId(undefined);
-    setPendingProposal(null);
-    setJobProgress(null);
-    setChatMessages([]);
-    setCurrentChatId(undefined);
+    syncPath('/request-history');
+    setRedirecting(true);
   };
 
   const handleLandingTrySend = (message: string) => {
@@ -378,9 +376,8 @@ export function AppShell({
 
     setPendingLandingSend(null);
     setLandingDraftMessage('');
-    syncPath('/chat');
-    setCurrentView('app');
-    void handleSendMessage(trimmed);
+    syncPath('/request-history');
+    setRedirecting(true);
   };
 
   const handleAuthDialogOpenChange = (open: boolean) => {
@@ -394,17 +391,9 @@ export function AppShell({
     syncPath('/admin/demo');
     setRouteTick((prev) => prev + 1);
   };
-  const handleOpenRequestForm = () => {
-    syncPath('/request-form');
-    setRouteTick((prev) => prev + 1);
-  };
-  const handleOpenRequestHistory = () => {
-    syncPath('/request-history');
-    setRouteTick((prev) => prev + 1);
-  };
 
   const resetToNewInvestigation = useCallback(() => {
-    syncPath('/chat');
+    syncPath('/request-history');
     setState('idle');
     setQuery('');
     setCurrentChatId(undefined);
@@ -971,6 +960,10 @@ export function AppShell({
     return () => clearInterval(interval);
   }, []);
 
+  if (redirecting) {
+    return <Navigate to="/request-history" replace />;
+  }
+
   if (currentView === 'landing') {
     return (
       <>
@@ -1009,13 +1002,11 @@ export function AppShell({
   }
 
   return (
-    <div className="dark flex min-h-screen bg-background text-foreground">
+    <div className="dark flex min-h-screen items-stretch bg-background text-foreground">
       <Sidebar
         recentChats={recentChats}
         onNewInvestigation={handleNewInvestigation}
         onOpenDemo={handleOpenDemo}
-        onOpenRequestForm={handleOpenRequestForm}
-        onOpenRequestHistory={handleOpenRequestHistory}
         isAdminUser={isAdminUser}
         currentChatId={currentChatId}
         onSelectChat={(id) => void handleSelectChat(id)}

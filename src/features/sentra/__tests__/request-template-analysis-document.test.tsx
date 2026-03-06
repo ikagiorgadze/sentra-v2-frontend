@@ -56,4 +56,107 @@ describe('request template analysis document', () => {
     const topicSection = screen.getByTestId('request-template-section-topic_cluster_analysis');
     expect(within(topicSection).getByText(/pricing/i)).toBeInTheDocument();
   });
+
+  it('renders nested payload values without object-object placeholders', () => {
+    const nestedDocument: RequestAnalysisDocumentRecord = {
+      ...SAMPLE_DOCUMENT,
+      sections: [
+        {
+          key: 'ai_strategic_insight_summary',
+          title: 'AI Strategic Insight Summary',
+          payload: {
+            summary: { positive: 12, negative: 4 },
+            highlights: [{ label: 'slow response time' }],
+          },
+        },
+      ],
+    };
+
+    render(<RequestTemplateAnalysisDocument document={nestedDocument} />);
+
+    const section = screen.getByTestId('request-template-section-ai_strategic_insight_summary');
+    const view = within(section);
+    expect(within(section).queryAllByText('[object Object]')).toHaveLength(0);
+    expect(view.getAllByText(/summary/i).length).toBeGreaterThanOrEqual(1);
+    expect(view.getByText(/positive/i)).toBeInTheDocument();
+    expect(view.getByText('12')).toBeInTheDocument();
+    expect(view.queryByText(/"positive": 12/i)).not.toBeInTheDocument();
+  });
+
+  it('renders engagement decay curve as a graph', () => {
+    const graphDocument: RequestAnalysisDocumentRecord = {
+      ...SAMPLE_DOCUMENT,
+      sections: [
+        {
+          key: 'engagement_decay_curve',
+          title: 'Engagement Decay Curve',
+          payload: {
+            daily_metrics: [
+              { date: '2026-03-01', mentions: 6, engagement_rate: 3.0 },
+              { date: '2026-03-02', mentions: 4, engagement_rate: 2.0 },
+              { date: '2026-03-03', mentions: 3, engagement_rate: 1.5 },
+            ],
+            longest_lasting_topic: 'pricing',
+            fastest_fading_topic: 'service delays',
+            virality_durability_score: 78.5,
+          },
+        },
+      ],
+    };
+
+    render(<RequestTemplateAnalysisDocument document={graphDocument} />);
+
+    const section = screen.getByTestId('request-template-section-engagement_decay_curve');
+    expect(within(section).getByTestId('request-engagement-decay-graph')).toBeInTheDocument();
+    expect(within(section).getByText(/metric: engagement rate/i)).toBeInTheDocument();
+    expect(within(section).getByText(/longest lasting topic/i)).toBeInTheDocument();
+    expect(within(section).getByText(/pricing/i)).toBeInTheDocument();
+  });
+
+  it('falls back to mentions metric when engagement rate is zero', () => {
+    const graphDocument: RequestAnalysisDocumentRecord = {
+      ...SAMPLE_DOCUMENT,
+      sections: [
+        {
+          key: 'engagement_decay_curve',
+          title: 'Engagement Decay Curve',
+          payload: {
+            daily_metrics: [
+              { date: '2026-03-01', mentions: 8, engagement_rate: 0.0 },
+              { date: '2026-03-02', mentions: 5, engagement_rate: 0.0 },
+              { date: '2026-03-03', mentions: 2, engagement_rate: 0.0 },
+            ],
+          },
+        },
+      ],
+    };
+
+    render(<RequestTemplateAnalysisDocument document={graphDocument} />);
+
+    const section = screen.getByTestId('request-template-section-engagement_decay_curve');
+    expect(within(section).getByText(/metric: mentions/i)).toBeInTheDocument();
+    expect(within(section).getByText('8')).toBeInTheDocument();
+  });
+
+  it('renders markdown formatting in summary text fields', () => {
+    const markdownDocument: RequestAnalysisDocumentRecord = {
+      ...SAMPLE_DOCUMENT,
+      sections: [
+        {
+          key: 'strategic_conclusion',
+          title: 'Strategic Conclusion',
+          payload: {
+            executive_summary: '**Strong momentum** with *rising trust*',
+          },
+        },
+      ],
+    };
+
+    render(<RequestTemplateAnalysisDocument document={markdownDocument} />);
+
+    const section = screen.getByTestId('request-template-section-strategic_conclusion');
+    expect(within(section).getByText('Strong momentum')).toContainHTML('strong');
+    expect(within(section).getByText('rising trust')).toContainHTML('em');
+    expect(within(section).queryByText(/\*\*Strong momentum\*\*/)).not.toBeInTheDocument();
+  });
 });

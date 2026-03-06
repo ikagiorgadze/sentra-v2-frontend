@@ -9,6 +9,9 @@ export interface AdminUsageSummaryRow {
   apify_unresolved_events_count: number;
   llm_resolved_usd: number;
   llm_unresolved_events_count: number;
+  request_pipeline_resolved_usd: number;
+  request_pipeline_unresolved_events_count: number;
+  request_pipeline_events_count: number;
   total_events_count: number;
   last_activity_at: string | null;
 }
@@ -20,6 +23,7 @@ export interface AdminUsageEventRow {
   provider: string;
   operation: string;
   model_or_actor: string;
+  pipeline: string;
   status: string;
   cost_usd: number | null;
   input_tokens: number | null;

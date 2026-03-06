@@ -3,12 +3,36 @@ import { Link, useParams } from 'react-router-dom';
 
 import { getFormRequest } from '@/features/sentra/api/formRequests';
 import { getJob, type JobRecord } from '@/features/sentra/api/jobs';
+import { JobProgressCard } from '@/features/sentra/components/chat/JobProgressCard';
 import type { FormRequestRecord } from '@/features/sentra/types/formRequest';
+
+interface JobProgressState {
+  statusLabel: string;
+  stageLabel?: string | null;
+  warningMessage?: string | null;
+  errorMessage?: string | null;
+  canRetry?: boolean;
+  progress?: JobRecord['progress'];
+}
+
+function formatStageLabel(status: string | null | undefined, fallback = 'Running'): string {
+  const normalized = status?.trim();
+  if (!normalized) {
+    return fallback;
+  }
+  return normalized.replaceAll('_', ' ');
+}
+
+function isJobTerminal(status: string): boolean {
+  const normalized = status.trim().toLowerCase();
+  return normalized === 'completed' || normalized === 'failed';
+}
 
 export function RequestDetailPage() {
   const { requestId } = useParams<{ requestId: string }>();
   const [request, setRequest] = useState<FormRequestRecord | null>(null);
   const [job, setJob] = useState<JobRecord | null>(null);
+  const [jobProgress, setJobProgress] = useState<JobProgressState | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -31,21 +55,9 @@ export function RequestDetailPage() {
           return;
         }
         setRequest(loadedRequest);
-
-        const linkedJobId = String(loadedRequest.job_id ?? '').trim();
-        if (linkedJobId) {
-          try {
-            const linkedJob = await getJob(linkedJobId);
-            if (!isCancelled) {
-              setJob(linkedJob);
-            }
-          } catch {
-            if (!isCancelled) {
-              setJob(null);
-            }
-          }
-        } else if (!isCancelled) {
+        if (!loadedRequest.job_id) {
           setJob(null);
+          setJobProgress(null);
         }
       } catch (caught) {
         if (!isCancelled) {
@@ -66,8 +78,77 @@ export function RequestDetailPage() {
     };
   }, [requestId]);
 
+  useEffect(() => {
+    const linkedJobId = String(request?.job_id ?? '').trim();
+    if (!linkedJobId) {
+      return undefined;
+    }
+
+    let isCancelled = false;
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
+    let consecutivePollErrors = 0;
+
+    const poll = async () => {
+      try {
+        const linkedJob = await getJob(linkedJobId);
+        if (isCancelled) {
+          return;
+        }
+        setJob(linkedJob);
+        setJobProgress({
+          statusLabel: linkedJob.status,
+          stageLabel: formatStageLabel(linkedJob.stage_label, formatStageLabel(linkedJob.stage_code, linkedJob.status)),
+          warningMessage: null,
+          errorMessage: linkedJob.error_message?.trim() || null,
+          canRetry: false,
+          progress: linkedJob.progress ?? null,
+        });
+        consecutivePollErrors = 0;
+
+        if (isJobTerminal(linkedJob.status)) {
+          return;
+        }
+      } catch {
+        if (isCancelled) {
+          return;
+        }
+        consecutivePollErrors += 1;
+        if (consecutivePollErrors >= 3) {
+          setJobProgress((prev) => {
+            if (!prev) {
+              return {
+                statusLabel: 'running',
+                stageLabel: 'Running',
+                warningMessage: 'Job status is temporarily unreachable. Retrying...',
+                errorMessage: null,
+                canRetry: false,
+                progress: null,
+              };
+            }
+            return {
+              ...prev,
+              warningMessage: 'Job status is temporarily unreachable. Retrying...',
+            };
+          });
+          consecutivePollErrors = 0;
+        }
+      }
+
+      timeoutId = setTimeout(poll, 3000);
+    };
+
+    void poll();
+
+    return () => {
+      isCancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [request?.job_id]);
+
   return (
-    <main className="min-h-screen bg-background px-4 py-8 text-foreground">
+    <main className="px-4 py-8">
       <div className="mx-auto w-full max-w-4xl space-y-5">
         <header className="space-y-2">
           <h1 className="text-3xl font-semibold">Request Details</h1>
@@ -95,9 +176,23 @@ export function RequestDetailPage() {
               </div>
             </div>
 
+            {request.job_id && jobProgress && (
+              <div>
+                <p className="mb-2 text-xs uppercase tracking-[0.12em] text-muted-foreground">Linked Job Progress</p>
+                <JobProgressCard
+                  statusLabel={jobProgress.statusLabel}
+                  stageLabel={jobProgress.stageLabel}
+                  warningMessage={jobProgress.warningMessage}
+                  errorMessage={jobProgress.errorMessage}
+                  canRetry={false}
+                  progress={jobProgress.progress ?? null}
+                />
+              </div>
+            )}
+
             {request.job_id && (
               <Link
-                to="/chat"
+                to={`/request-history/${request.id}/analysis`}
                 className="inline-flex rounded border border-border px-3 py-1.5 text-sm transition-colors hover:border-[#3FD6D0]"
               >
                 Open Analysis Document

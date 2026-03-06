@@ -16,8 +16,6 @@ interface SidebarProps {
   recentChats: RecentChat[];
   onNewInvestigation: () => void;
   onOpenDemo?: () => void;
-  onOpenRequestForm?: () => void;
-  onOpenRequestHistory?: () => void;
   isAdminUser?: boolean;
   currentChatId?: string;
   onSelectChat: (id: string) => void;
@@ -31,8 +29,6 @@ export function Sidebar({
   recentChats,
   onNewInvestigation,
   onOpenDemo,
-  onOpenRequestForm,
-  onOpenRequestHistory,
   isAdminUser = false,
   currentChatId,
   onSelectChat,
@@ -48,24 +44,16 @@ export function Sidebar({
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
   const handleOpenRequestForm = () => {
-    if (onOpenRequestForm) {
-      onOpenRequestForm();
-      return;
-    }
     window.history.pushState({}, '', '/request-form');
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
   const handleOpenRequestHistory = () => {
-    if (onOpenRequestHistory) {
-      onOpenRequestHistory();
-      return;
-    }
     window.history.pushState({}, '', '/request-history');
     window.dispatchEvent(new PopStateEvent('popstate'));
   };
 
   return (
-    <div className="flex h-screen w-64 flex-col border-r border-border bg-[#0F1113]">
+    <div className="flex min-h-screen w-64 shrink-0 self-stretch flex-col border-r border-border bg-[#0F1113]">
       <div className="border-b border-border p-6">
         <div className="flex items-center gap-2">
           <div className="h-2 w-2 rounded-full bg-[#3FD6D0]" />

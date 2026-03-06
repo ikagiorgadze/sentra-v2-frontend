@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { Sidebar } from '@/features/sentra/components/Sidebar';
 
@@ -13,26 +13,25 @@ const chat = {
 };
 
 describe('sidebar request links', () => {
+  beforeEach(() => {
+    window.history.pushState({}, '', '/chat');
+  });
+
   it('shows links to request form/history without mixing recent chats', async () => {
     const user = userEvent.setup();
-    const onOpenRequestForm = vi.fn();
-    const onOpenRequestHistory = vi.fn();
 
     render(
       <Sidebar
         recentChats={[chat]}
         onNewInvestigation={vi.fn()}
         onSelectChat={vi.fn()}
-        onOpenRequestForm={onOpenRequestForm}
-        onOpenRequestHistory={onOpenRequestHistory}
       />,
     );
 
     expect(screen.getByText(/recent chats/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /new request form/i }));
+    expect(window.location.pathname).toBe('/request-form');
     await user.click(screen.getByRole('button', { name: /request history/i }));
-
-    expect(onOpenRequestForm).toHaveBeenCalledTimes(1);
-    expect(onOpenRequestHistory).toHaveBeenCalledTimes(1);
+    expect(window.location.pathname).toBe('/request-history');
   });
 });

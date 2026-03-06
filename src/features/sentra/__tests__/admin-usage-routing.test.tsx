@@ -1,5 +1,5 @@
 import { render, screen, waitFor } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import App from '@/App';
 import { clearAccessToken, setAccessToken } from '@/lib/auth/tokenStorage';
@@ -18,22 +18,24 @@ function makeToken(role: string, expOffsetSeconds = 3600): string {
   return `header.${encoded}.sig`;
 }
 
+afterEach(() => {
+  clearAccessToken();
+});
+
 describe('admin usage routing', () => {
-  it('redirects non-admin users from /admin/users/usage to /chat', async () => {
-    clearAccessToken();
+  it('redirects non-admin users from /admin/users/usage to /request-history', async () => {
     setAccessToken(makeToken('user'));
     window.history.pushState({}, '', '/admin/users/usage');
 
     render(<App />);
 
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/chat');
+      expect(window.location.pathname).toBe('/request-history');
     });
     expect(screen.queryByText(/admin usage - all users/i)).not.toBeInTheDocument();
   });
 
   it('allows admin users to open /admin/users/usage/:userId', async () => {
-    clearAccessToken();
     setAccessToken(makeToken('admin'));
     vi.spyOn(global, 'fetch').mockResolvedValue(
       new Response(
@@ -47,6 +49,9 @@ describe('admin usage routing', () => {
             apify_unresolved_events_count: 0,
             llm_resolved_usd: 0.5,
             llm_unresolved_events_count: 0,
+            request_pipeline_resolved_usd: 0.2,
+            request_pipeline_unresolved_events_count: 0,
+            request_pipeline_events_count: 1,
             total_events_count: 2,
             last_activity_at: null,
           },

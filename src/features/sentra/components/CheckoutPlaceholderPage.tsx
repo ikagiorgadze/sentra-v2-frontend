@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 
 export function CheckoutPlaceholderPage() {
   return (
-    <div className="dark min-h-screen bg-background text-foreground">
+    <div>
       <main className="mx-auto max-w-3xl px-6 py-16">
         <h1 className="text-3xl" style={{ fontWeight: 400 }}>
           Checkout Placeholder
