@@ -70,6 +70,10 @@ npm run dev
   - `POST /v1/conversations/{conversation_id}/confirm-job`
 - Jobs (polling after confirm):
   - `GET /v1/jobs/{jobId}`
+- Form request creation (separate from chat):
+  - `POST /v1/form-requests`
+  - `GET /v1/form-requests`
+  - `GET /v1/form-requests/{request_id}`
 - Analytics:
   - `GET /v1/jobs/{jobId}/overview`
   - `GET /v1/jobs/{jobId}/sentiment-overview`
@@ -89,6 +93,19 @@ The frontend stores backend access tokens in local storage and sends `Authorizat
 
 Important: the app is intentionally configured to require explicit confirmation for every job creation.
 Sentiment analysis runs in backend pipeline after confirmation; it is not triggered during clarification turns.
+
+## Form Request UX Flow (Separate URL)
+Routes:
+- `/request-form`
+- `/request-history`
+- `/request-history/:requestId`
+
+Flow:
+1. User opens `/request-form` and submits structured fields.
+2. Frontend builds a normalized query and sends `POST /v1/form-requests`.
+3. Backend creates the job immediately and returns linked request + job.
+4. Frontend redirects to `/request-history/:requestId` and shows both request payload and job status.
+5. User can view prior structured submissions at `/request-history`.
 
 ## Admin Demo Page (Mocked)
 - Route: `/admin/demo`
