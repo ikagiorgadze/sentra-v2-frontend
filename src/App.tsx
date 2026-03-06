@@ -8,7 +8,9 @@ import { ScrollToTop } from "@/components/ScrollToTop";
 import { AppShell } from "@/features/sentra/components/AppShell";
 import { CheckoutPlaceholderPage } from "@/features/sentra/components/CheckoutPlaceholderPage";
 import { PricingPage } from "@/features/sentra/components/PricingPage";
+import { RequestDetailPage } from "@/features/sentra/components/requests/RequestDetailPage";
 import { RequestFormPage } from "@/features/sentra/components/requests/RequestFormPage";
+import { RequestHistoryPage } from "@/features/sentra/components/requests/RequestHistoryPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -40,6 +42,8 @@ const App = () => {
             <Route path="/onboarding" element={<AppShell initialView="app" />} />
             <Route path="/sample-report" element={<AppShell initialView="app" />} />
             <Route path="/request-form" element={<RequestFormPage />} />
+            <Route path="/request-history" element={<RequestHistoryPage />} />
+            <Route path="/request-history/:requestId" element={<RequestDetailPage />} />
 
             <Route path="/about" element={<AppShell initialView="landing" />} />
             <Route path="/privacy" element={<AppShell initialView="landing" />} />
