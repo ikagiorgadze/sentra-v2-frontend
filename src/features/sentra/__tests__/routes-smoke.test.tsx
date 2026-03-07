@@ -40,7 +40,7 @@ describe('route entry points', () => {
     setAccessToken(makeToken(3600));
     window.history.pushState({}, '', '/request-form');
     render(<App />);
-    expect(screen.getByRole('heading', { name: /sentra intelligence request form/i })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /new intelligence request/i })).toBeInTheDocument();
   });
 
   it('renders request analysis page route', () => {

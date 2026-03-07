@@ -7,6 +7,12 @@ export interface FormRequestRecord {
   owner_user_id: string;
   status: FormRequestStatus;
   query: string;
+  organization_name: string | null;
+  department: string | null;
+  contact_name: string | null;
+  contact_email: string | null;
+  contact_phone: string | null;
+  project_name: string | null;
   form_payload_json: Record<string, unknown>;
   normalization_json: Record<string, unknown> | null;
   job_id: string | null;
@@ -18,6 +24,12 @@ export interface CreateFormRequestInput {
   query: string;
   form_payload: Record<string, unknown>;
   normalization_json?: Record<string, unknown> | null;
+  organization_name?: string;
+  department?: string;
+  contact_name?: string;
+  contact_email?: string;
+  contact_phone?: string;
+  project_name?: string;
 }
 
 export interface CreateFormRequestRecord {

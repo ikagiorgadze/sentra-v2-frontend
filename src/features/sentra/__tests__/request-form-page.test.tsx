@@ -29,13 +29,32 @@ describe('request form page', () => {
       </MemoryRouter>,
     );
 
+    // Submit without filling required fields — should show validation errors
     await user.click(screen.getByRole('button', { name: /submit request/i }));
-    expect(screen.getByText(/primary brand\/organization is required/i)).toBeInTheDocument();
 
-    await user.type(screen.getByLabelText(/primary brand \/ organization/i), 'Acme Telecom');
-    await user.type(screen.getByLabelText(/keywords \/ phrases to track/i), 'არ გაჩერდე, #acme');
-    expect(screen.queryByText(/monitoring objective/i)).not.toBeInTheDocument();
-    expect(screen.queryByLabelText(/key question/i)).not.toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByText(/organization name is required/i)).toBeInTheDocument();
+    });
+
+    // Fill required fields
+    await user.type(screen.getByLabelText(/organization \/ client name/i), 'Acme Telecom');
+    await user.type(screen.getByPlaceholderText(/contact name/i), 'John Doe');
+    await user.type(screen.getByLabelText('Email'), 'john@acme.com');
+
+    // Select an objective
+    await user.click(screen.getByText(/brand sentiment monitoring/i));
+
+    // Fill key question
+    await user.type(screen.getByLabelText(/key question/i), 'How is the public reacting?');
+
+    // Add a keyword
+    const keywordInput = screen.getByPlaceholderText(/add keyword/i);
+    await user.type(keywordInput, 'acme{Enter}');
+
+    // Fill country
+    await user.type(screen.getByLabelText(/country/i), 'Georgia');
+
+    // Submit
     await user.click(screen.getByRole('button', { name: /submit request/i }));
 
     await waitFor(() => {
@@ -44,12 +63,19 @@ describe('request form page', () => {
 
     const payload = createFormRequestMock.mock.calls[0]?.[0] as {
       query: string;
+      organization_name?: string;
+      contact_name?: string;
+      contact_email?: string;
       form_payload: Record<string, unknown>;
     };
-    expect(payload.query).toBe('Acme Telecom არ გაჩერდე #acme');
-    expect(payload.form_payload).not.toHaveProperty('organization_name');
-    expect(payload.form_payload).not.toHaveProperty('objectives');
-    expect(payload.form_payload).not.toHaveProperty('key_question');
+    expect(payload.query).toContain('acme');
+    // User info is persisted as top-level fields (dedicated DB columns)
+    expect(payload.organization_name).toBe('Acme Telecom');
+    expect(payload.contact_name).toBe('John Doe');
+    expect(payload.contact_email).toBe('john@acme.com');
+    // Analysis data stays in form_payload JSONB
+    expect(payload.form_payload).toHaveProperty('objectives');
+    expect(payload.form_payload).toHaveProperty('key_question', 'How is the public reacting?');
   });
 
   it('shows calendar inputs when custom range is selected', async () => {
@@ -61,7 +87,8 @@ describe('request form page', () => {
       </MemoryRouter>,
     );
 
-    await user.selectOptions(screen.getByLabelText(/time range/i), 'Custom range');
+    // Click the "Custom range" radio
+    await user.click(screen.getByText(/custom range/i));
 
     expect(screen.getByLabelText(/start date/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/end date/i)).toBeInTheDocument();

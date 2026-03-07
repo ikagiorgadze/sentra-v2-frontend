@@ -1,238 +1,131 @@
-import { FormEvent, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useForm, FormProvider } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useMemo, useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { requestFormSchema, type RequestFormValues } from '../../types/requestFormSchema';
+import { createFormRequest } from '../../api/formRequests';
+import { calculatePrice } from '../../lib/priceCalculator';
+import { YourDetailsSection } from './YourDetailsSection';
+import { AnalysisConfigSection } from './AnalysisConfigSection';
+import { PriceCalculator } from './PriceCalculator';
 
-import { createFormRequest } from '@/features/sentra/api/formRequests';
-import { buildRequestQuery, type RequestQueryInput } from '@/features/sentra/lib/requestQueryBuilder';
-
-interface FormErrors {
-  primaryEntity?: string;
-  customDateRange?: string;
-  submit?: string;
-}
-
-function parseKeywords(raw: string): string[] {
-  return raw
-    .split(/[\n,]/g)
-    .map((entry) => entry.trim())
-    .filter(Boolean);
-}
+const TIME_RANGE_MAP: Record<string, string> = {
+  last_24h: 'Last 24 hours',
+  last_7d: 'Last 7 days',
+  last_30d: 'Last 30 days',
+  custom: 'Custom range',
+};
 
 export function RequestFormPage() {
   const navigate = useNavigate();
-  const [primaryEntity, setPrimaryEntity] = useState('');
-  const [region, setRegion] = useState<'Global' | 'Eastern Europe' | 'Specific country'>('Global');
-  const [country, setCountry] = useState('');
-  const [timePreset, setTimePreset] = useState<'Last 24 hours' | 'Last 7 days' | 'Last 30 days' | 'Custom range'>(
-    'Last 7 days',
-  );
-  const [customStartDate, setCustomStartDate] = useState('');
-  const [customEndDate, setCustomEndDate] = useState('');
-  const [keywordsRaw, setKeywordsRaw] = useState('');
-  const [errors, setErrors] = useState<FormErrors>({});
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
-  const queryInput = useMemo<RequestQueryInput>(
-    () => ({
-      primary_entity: primaryEntity,
-      geography: {
-        region,
-        country: country.trim() || undefined,
+  const methods = useForm<RequestFormValues>({
+    resolver: zodResolver(requestFormSchema),
+    defaultValues: {
+      organizationName: '',
+      department: 'corporate_affairs',
+      contactName: '',
+      contactEmail: '',
+      contactPhone: '',
+      projectName: '',
+      additionalContext: '',
+      objectives: {
+        brandSentiment: false,
+        campaignPerformance: false,
+        competitorAnalysis: false,
+        industrySectorAnalysis: false,
+        other: false,
+        otherText: '',
       },
-      timeframe: {
-        preset: timePreset,
-        start_date: timePreset === 'Custom range' ? customStartDate || undefined : undefined,
-        end_date: timePreset === 'Custom range' ? customEndDate || undefined : undefined,
-      },
-      keywords: parseKeywords(keywordsRaw),
-    }),
-    [country, customEndDate, customStartDate, keywordsRaw, primaryEntity, region, timePreset],
-  );
+      keyQuestion: '',
+      keywords: [],
+      country: '',
+      timeRange: 'last_7d',
+      comparePreviousPeriod: false,
+      intelligenceDepth: 'basic',
+    },
+  });
 
-  const queryPreview = useMemo(() => buildRequestQuery(queryInput), [queryInput]);
+  const watchedValues = methods.watch();
+  const { lineItems, total } = useMemo(() => calculatePrice(watchedValues), [watchedValues]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    const nextErrors: FormErrors = {};
-    if (!primaryEntity.trim()) {
-      nextErrors.primaryEntity = 'Primary brand/organization is required';
-    }
-    if (timePreset === 'Custom range') {
-      if (!customStartDate || !customEndDate) {
-        nextErrors.customDateRange = 'Custom range requires both start and end date';
-      } else if (customStartDate > customEndDate) {
-        nextErrors.customDateRange = 'Custom range start date must be before end date';
-      }
-    }
-    if (Object.keys(nextErrors).length > 0) {
-      setErrors(nextErrors);
-      return;
-    }
-
-    setErrors({});
-    setIsSubmitting(true);
-
+  const onSubmit = async (data: RequestFormValues) => {
+    setSubmitError(null);
     try {
+      const query = [data.keyQuestion, ...data.keywords].join(' ');
       const response = await createFormRequest({
-        query: queryPreview,
+        query,
+        // User info — persisted as dedicated DB columns
+        organization_name: data.organizationName,
+        department: data.department === 'other' ? data.departmentOther || 'Other' : data.department,
+        contact_name: data.contactName,
+        contact_email: data.contactEmail,
+        contact_phone: data.contactPhone || undefined,
+        project_name: data.projectName || undefined,
+        // Analysis payload — stored as JSONB
         form_payload: {
-          primary_entity: primaryEntity.trim(),
-          geography: {
-            region,
-            country: region === 'Specific country' ? country.trim() || null : null,
-          },
+          additional_context: data.additionalContext,
+          objectives: data.objectives,
+          campaign_details: data.campaignDetails,
+          competitor_details: data.competitorDetails,
+          industry_details: data.industryDetails,
+          key_question: data.keyQuestion,
+          keywords: data.keywords,
+          geography: { country: data.country },
           timeframe: {
-            preset: timePreset,
-            start_date: timePreset === 'Custom range' ? customStartDate : null,
-            end_date: timePreset === 'Custom range' ? customEndDate : null,
+            preset: TIME_RANGE_MAP[data.timeRange] ?? data.timeRange,
+            start_date: data.customStartDate,
+            end_date: data.customEndDate,
           },
-          keywords: parseKeywords(keywordsRaw),
+          compare_previous_period: data.comparePreviousPeriod,
+          previous_period: data.comparePreviousPeriod
+            ? {
+                type: data.previousPeriodType,
+                start_date: data.previousPeriodStartDate,
+                end_date: data.previousPeriodEndDate,
+              }
+            : undefined,
+          intelligence_depth: data.intelligenceDepth,
+          price_breakdown: { line_items: lineItems, total },
         },
         normalization_json: {
-          region: null,
-          country: null,
-          timeframe: timePreset,
-          start_date: timePreset === 'Custom range' ? customStartDate : null,
-          end_date: timePreset === 'Custom range' ? customEndDate : null,
+          country: data.country || null,
+          timeframe: TIME_RANGE_MAP[data.timeRange] ?? data.timeRange,
+          start_date: data.customStartDate || null,
+          end_date: data.customEndDate || null,
         },
       });
       navigate(`/request-history/${response.request.id}`);
-    } catch (caught) {
-      const message = caught instanceof Error && caught.message.trim() ? caught.message.trim() : 'Submit failed';
-      setErrors({ submit: message });
-    } finally {
-      setIsSubmitting(false);
+    } catch (err) {
+      setSubmitError(err instanceof Error ? err.message : 'Submission failed');
     }
   };
 
   return (
-    <main className="px-4 py-8">
-      <div className="mx-auto w-full max-w-3xl space-y-6">
-        <header className="space-y-2">
-          <h1 className="text-3xl font-semibold">Sentra Intelligence Request Form</h1>
-          <p className="text-sm text-muted-foreground">Structured intake for analysis job creation.</p>
-        </header>
+    <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
+      <h1 className="text-2xl font-bold">New Intelligence Request</h1>
 
-        <form onSubmit={handleSubmit} className="space-y-6 rounded-lg border border-border bg-card p-5">
-          <div className="space-y-2">
-            <label htmlFor="primaryEntity" className="text-sm">
-              Primary Brand / Organization
-            </label>
-            <input
-              id="primaryEntity"
-              value={primaryEntity}
-              onChange={(event) => setPrimaryEntity(event.target.value)}
-              className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-            />
-            {errors.primaryEntity && <p className="text-xs text-red-300">{errors.primaryEntity}</p>}
-          </div>
+      <FormProvider {...methods}>
+        <form onSubmit={methods.handleSubmit(onSubmit)} className="space-y-6">
+          <YourDetailsSection />
+          <AnalysisConfigSection />
+          <PriceCalculator lineItems={lineItems} total={total} />
 
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="space-y-2">
-              <label htmlFor="region" className="text-sm">
-                Region to monitor
-              </label>
-              <select
-                id="region"
-                value={region}
-                onChange={(event) => setRegion(event.target.value as typeof region)}
-                className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-              >
-                <option value="Global">Global</option>
-                <option value="Eastern Europe">Eastern Europe</option>
-                <option value="Specific country">Specific country</option>
-              </select>
-            </div>
-            <div className="space-y-2">
-              <label htmlFor="country" className="text-sm">
-                Country
-              </label>
-              <input
-                id="country"
-                value={country}
-                onChange={(event) => setCountry(event.target.value)}
-                disabled={region !== 'Specific country'}
-                className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-2">
-            <label htmlFor="timePreset" className="text-sm">
-              Time Range
-            </label>
-            <select
-              id="timePreset"
-              value={timePreset}
-              onChange={(event) => setTimePreset(event.target.value as typeof timePreset)}
-              className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-            >
-              <option value="Last 24 hours">Last 24 hours</option>
-              <option value="Last 7 days">Last 7 days</option>
-              <option value="Last 30 days">Last 30 days</option>
-              <option value="Custom range">Custom range</option>
-            </select>
-          </div>
-
-          {timePreset === 'Custom range' && (
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label htmlFor="customStartDate" className="text-sm">
-                  Start Date
-                </label>
-                <input
-                  id="customStartDate"
-                  type="date"
-                  value={customStartDate}
-                  onChange={(event) => setCustomStartDate(event.target.value)}
-                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-              <div className="space-y-2">
-                <label htmlFor="customEndDate" className="text-sm">
-                  End Date
-                </label>
-                <input
-                  id="customEndDate"
-                  type="date"
-                  value={customEndDate}
-                  onChange={(event) => setCustomEndDate(event.target.value)}
-                  className="w-full rounded border border-border bg-background px-3 py-2 text-sm"
-                />
-              </div>
-            </div>
+          {submitError && (
+            <p className="text-sm text-destructive">{submitError}</p>
           )}
-          {errors.customDateRange && <p className="text-xs text-red-300">{errors.customDateRange}</p>}
 
-          <div className="space-y-2">
-            <label htmlFor="keywords" className="text-sm">
-              Keywords / Phrases to Track
-            </label>
-            <textarea
-              id="keywords"
-              value={keywordsRaw}
-              onChange={(event) => setKeywordsRaw(event.target.value)}
-              placeholder="brand, hashtag, campaign keyword"
-              className="min-h-24 w-full rounded border border-border bg-background px-3 py-2 text-sm"
-            />
-          </div>
-
-          <section className="rounded border border-border/70 bg-background/60 p-3">
-            <p className="mb-1 text-xs uppercase tracking-[0.12em] text-muted-foreground">Query Preview</p>
-            <p className="text-sm">{queryPreview}</p>
-          </section>
-
-          {errors.submit && <p className="text-sm text-red-300">{errors.submit}</p>}
-
-          <button
+          <Button
             type="submit"
-            disabled={isSubmitting}
-            className="rounded bg-[#3FD6D0] px-4 py-2 text-sm font-medium text-black disabled:opacity-60"
+            className="w-full"
+            disabled={methods.formState.isSubmitting}
           >
-            {isSubmitting ? 'Submitting...' : 'Submit Request'}
-          </button>
+            {methods.formState.isSubmitting ? 'Submitting...' : 'Submit Request'}
+          </Button>
         </form>
-      </div>
-    </main>
+      </FormProvider>
+    </div>
   );
 }
